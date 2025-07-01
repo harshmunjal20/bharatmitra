@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useContext } from 'rea
 import { ChatMessage as ChatMessageType, MessageSender } from '../types';
 import { getSchemeAdvice } from '../services/geminiService';
 import ChatMessage from '../components/ChatMessage';
-import { MicIcon } from '../components/icons/MicIcon';
+// import { MicIcon } from '../components/icons/MicIcon';
 import { SendIcon } from '../components/icons/SendIcon';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { UserContext } from '../contexts/UserContext';
@@ -154,7 +154,7 @@ const ChatPage: React.FC = () => {
             </div>
           )}
           <div className="flex items-center space-x-3">
-            <button
+{/*             <button
               onClick={handleMicClick}
               className={`flex-shrink-0 p-3 rounded-full transition-colors duration-200 ${
                 isEnabled ? (isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-green-500 text-white') 
@@ -163,7 +163,7 @@ const ChatPage: React.FC = () => {
               aria-label={isListening ? 'Stop recording' : 'Start recording'}
             >
               <MicIcon className="h-6 w-6" />
-            </button>
+            </button> */}
             <input
               type="text"
               value={input}
