@@ -14,6 +14,8 @@ interface UserContextType {
   isSpeaking: boolean;
   isPaused: boolean;
   activeUtteranceId: string | null;
+  autoPlayEnabled: boolean;
+  setAutoPlayEnabled: (enabled: boolean) => void;
 }
 
 export const UserContext = createContext<UserContextType>({
@@ -28,6 +30,8 @@ export const UserContext = createContext<UserContextType>({
   isSpeaking: false,
   isPaused: false,
   activeUtteranceId: null,
+  autoPlayEnabled: false,
+  setAutoPlayEnabled: () => {},
 });
 
 interface UserProviderProps {
@@ -38,6 +42,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [userId] = useState<string>(generateUserId());
   const [tokenBalance, setTokenBalance] = useState<number>(100);
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
+  const [autoPlayEnabled, setAutoPlayEnabled] = useState<boolean>(false);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -263,6 +268,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     isSpeaking,
     isPaused,
     activeUtteranceId,
+    autoPlayEnabled,
+    setAutoPlayEnabled,
   };
 
   return (
