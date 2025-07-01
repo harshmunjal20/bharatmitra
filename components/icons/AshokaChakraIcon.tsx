@@ -1,38 +1,46 @@
+
 import React from 'react';
 
-interface AshokaChakraIconProps {
-  className?: string;
-}
-
-export const AshokaChakraIcon: React.FC<AshokaChakraIconProps> = ({ className = "h-6 w-6" }) => {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1" fill="none" />
-      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-      {/* 24 spokes radiating from center */}
-      {Array.from({ length: 24 }, (_, i) => {
-        const angle = (i * 15) * Math.PI / 180;
-        const x1 = 12 + 3 * Math.cos(angle);
-        const y1 = 12 + 3 * Math.sin(angle);
-        const x2 = 12 + 9 * Math.cos(angle);
-        const y2 = 12 + 9 * Math.sin(angle);
-        return (
-          <line
-            key={i}
-            x1={x1}
-            y1={y1}
-            x2={x2}
-            y2={y2}
-            stroke="currentColor"
-            strokeWidth="0.5"
-          />
-        );
-      })}
-    </svg>
-  );
-};
+export const AshokaChakraIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="2" />
+    <g>
+      <path d="M12 2v2" />
+      <path d="M12 20v2" />
+      <path d="M22 12h-2" />
+      <path d="M4 12H2" />
+      <path d="m19.07 4.93-1.41 1.41" />
+      <path d="m6.34 17.66-1.41 1.41" />
+      <path d="m19.07 19.07-1.41-1.41" />
+      <path d="m6.34 6.34-1.41-1.41" />
+      <path d="m16.95 7.05 1.41-1.42" />
+      <path d="m5.64 18.36 1.41-1.41" />
+      <path d="m16.95 16.95 1.41 1.41" />
+      <path d="m5.64 5.64 1.41 1.41" />
+    </g>
+    <g transform="rotate(7.5 12 12)">
+      <path d="M12 2v2" />
+      <path d="M12 20v2" />
+      <path d="M22 12h-2" />
+      <path d="M4 12H2" />
+      <path d="m19.07 4.93-1.41 1.41" />
+      <path d="m6.34 17.66-1.41 1.41" />
+      <path d="m19.07 19.07-1.41-1.41" />
+      <path d="m6.34 6.34-1.41-1.41" />
+      <path d="m16.95 7.05 1.41-1.42" />
+      <path d="m5.64 18.36 1.41-1.41" />
+      <path d="m16.95 16.95 1.41 1.41" />
+      <path d="m5.64 5.64 1.41 1.41" />
+    </g>
+  </svg>
+);
