@@ -41,6 +41,7 @@ interface SpeechRecognition extends EventTarget {
     continuous: boolean;
     interimResults: boolean;
     lang: string;
+    maxAlternatives: number;
     onend: ((this: SpeechRecognition, ev: Event) => any) | null;
     onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
     onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
@@ -65,9 +66,15 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
   const [isEnabled, setIsEnabled] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isStartingRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const stopListening = useCallback(() => {
     isStartingRef.current = false;
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     
     if (recognitionRef.current) {
       try {
@@ -93,12 +100,13 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
 
     const recognition = new SpeechRecognitionAPI();
     recognitionRef.current = recognition;
-    recognition.continuous = true;
+    recognition.continuous = false; // Changed to false for better control
     recognition.interimResults = true;
     recognition.lang = lang === 'en' ? 'en-IN' : 'hi-IN';
     recognition.maxAlternatives = 1;
     
     recognition.onstart = () => {
+      console.log('Speech recognition started');
       setIsListening(true);
       setError(null);
       isStartingRef.current = false;
@@ -121,39 +129,54 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
       setTranscript(currentTranscript.trim());
       
       if (finalTranscript && onTranscriptComplete) {
-        onTranscriptComplete(currentTranscript.trim());
+        console.log('Final transcript:', finalTranscript.trim());
+        onTranscriptComplete(finalTranscript.trim());
+        // Stop listening after getting final result
+        setIsEnabled(false);
+        setIsListening(false);
       }
     };
 
     recognition.onend = () => {
+      console.log('Speech recognition ended');
       setIsListening(false);
-      if (isEnabled && !isStartingRef.current) {
-        setTimeout(() => {
+      
+      // If still enabled and no final transcript received, restart
+      if (isEnabled && !isStartingRef.current && transcript.trim() === '') {
+        timeoutRef.current = setTimeout(() => {
           if (isEnabled && recognitionRef.current && !isStartingRef.current) {
             try {
+              console.log('Restarting speech recognition');
               isStartingRef.current = true;
               recognitionRef.current.start();
             } catch (err) {
               console.error('Failed to restart recognition:', err);
               isStartingRef.current = false;
+              setError('Failed to restart recognition');
             }
           }
-        }, 100);
+        }, 500);
       }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('Speech recognition error:', event.error, event.message);
       isStartingRef.current = false;
       
       if (event.error === 'no-speech') {
-        setError(null);
+        setError('No speech detected. Please try speaking again.');
+        // Don't disable, just stop current session
+        setIsListening(false);
       } else if (event.error === 'aborted') {
         setError(null);
         setIsListening(false);
       } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        setError('Microphone permission denied. Please allow microphone access.');
+        setError('Microphone permission denied. Please allow microphone access and try again.');
         setIsListening(false);
         setIsEnabled(false);
+      } else if (event.error === 'network') {
+        setError('Network error. Please check your internet connection.');
+        setIsListening(false);
       } else {
         setError(`Recognition error: ${event.error}`);
         setIsListening(false);
@@ -163,6 +186,11 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
     return () => {
       isStartingRef.current = false;
       
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
       if (recognitionRef.current) {
         recognitionRef.current.stop();
         recognitionRef.current.onresult = null;
@@ -171,34 +199,43 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
         recognitionRef.current.onstart = null;
       }
     };
-  }, [lang, onTranscriptComplete, isEnabled]);
+  }, [lang, onTranscriptComplete, isEnabled, transcript]);
   
   const toggleVoiceInput = useCallback(() => {
+    console.log('Toggle voice input called, current isEnabled:', isEnabled);
+    
     if (!recognitionRef.current) {
+      setError('Speech Recognition is not available.');
       return;
     }
     
+    // Stop any ongoing speech synthesis
     if (window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
     }
     
     if (isEnabled) {
+      console.log('Disabling voice input');
       setIsEnabled(false);
       stopListening();
+      setTranscript('');
     } else {
+      console.log('Enabling voice input');
       setIsEnabled(true);
       setError(null);
       setTranscript('');
       
+      // Request microphone permission and start recognition
       if (!isStartingRef.current && !isListening) {
         isStartingRef.current = true;
         
         try {
+          console.log('Starting speech recognition');
           recognitionRef.current.start();
         } catch (err) {
           console.error('Failed to start speech recognition:', err);
           isStartingRef.current = false;
-          setError('Failed to start speech recognition');
+          setError('Failed to start speech recognition. Please try again.');
           setIsEnabled(false);
         }
       }
