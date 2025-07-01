@@ -14,8 +14,7 @@ interface UserContextType {
   isSpeaking: boolean;
   isPaused: boolean;
   activeUtteranceId: string | null;
-  autoPlayEnabled: boolean;
-  setAutoPlayEnabled: (enabled: boolean) => void;
+  autoPlayEnabled: boolean; // Added this missing property
 }
 
 export const UserContext = createContext<UserContextType>({
@@ -31,7 +30,6 @@ export const UserContext = createContext<UserContextType>({
   isPaused: false,
   activeUtteranceId: null,
   autoPlayEnabled: false,
-  setAutoPlayEnabled: () => {},
 });
 
 interface UserProviderProps {
@@ -50,8 +48,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const isProcessingRef = useRef(false);
+  const voicesLoadedRef = useRef(false);
 
   const getFemaleVoice = useCallback((lang: 'en' | 'hi') => {
+    console.log(`🔍 Looking for ${lang} female voice from ${voices.length} available voices`);
+    
     const availableVoices = voices.filter(voice => {
       const name = voice.name.toLowerCase();
       const voiceLang = voice.lang.toLowerCase();
@@ -83,6 +84,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     });
 
     if (availableVoices.length === 0) {
+      console.log('⚠️ No specific female voices found, trying fallback');
       const femaleVoices = voices.filter(voice => {
         const name = voice.name.toLowerCase();
         return (
@@ -91,7 +93,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           (lang === 'hi' ? voice.lang.startsWith('hi') || voice.lang.startsWith('en-') : voice.lang.startsWith('en-'))
         );
       });
-      return femaleVoices[0] || null;
+      const fallbackVoice = femaleVoices[0] || voices[0] || null;
+      console.log('🔄 Using fallback voice:', fallbackVoice?.name);
+      return fallbackVoice;
     }
 
     const preferredVoice = availableVoices.find(voice => {
@@ -104,21 +108,43 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       );
     });
 
-    return preferredVoice || availableVoices[0] || null;
+    const selectedVoice = preferredVoice || availableVoices[0] || null;
+    console.log('✅ Selected voice:', selectedVoice?.name, selectedVoice?.lang);
+    return selectedVoice;
   }, [voices]);
 
   useEffect(() => {
     const loadVoices = () => {
       const loadedVoices = window.speechSynthesis.getVoices();
+      console.log('🎤 Voices loaded:', loadedVoices.length);
       setVoices(loadedVoices);
+      if (loadedVoices.length > 0) {
+        voicesLoadedRef.current = true;
+      }
     };
     
+    // Initial load
     loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+    
+    // Set up event listener for voice changes
+    const handleVoicesChanged = () => {
+      console.log('🔄 Voices changed event triggered');
+      loadVoices();
+    };
+    
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+    }
+    
+    // Fallback: Try loading voices after a delay
+    setTimeout(loadVoices, 100);
+    setTimeout(loadVoices, 500);
     
     return () => {
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
         window.speechSynthesis.onvoiceschanged = null;
-        window.speechSynthesis.cancel();
+      }
+      window.speechSynthesis.cancel();
     };
   }, []);
 
@@ -127,10 +153,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const hindiCharCount = (text.match(/[\u0900-\u097F]/g) || []).length;
     const totalChars = text.replace(/\s/g, '').length;
     
-    return hindiCharCount / totalChars > 0.2 ? 'hi' : 'en';
+    const detectedLang = hindiCharCount / totalChars > 0.2 ? 'hi' : 'en';
+    console.log(`🔤 Language detection: ${detectedLang} (Hindi chars: ${hindiCharCount}/${totalChars})`);
+    return detectedLang;
   }, []);
 
   const stopSpeech = useCallback(() => {
+    console.log('🛑 Stopping speech');
     const synth = window.speechSynthesis;
     if (synth.speaking || synth.pending) {
       synth.cancel();
@@ -143,7 +172,27 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   }, []);
 
   const togglePlayPause = useCallback((text: string, id: string, contextLang: 'en' | 'hi') => {
+    console.log('🎵 togglePlayPause called:', {
+      textLength: text.length,
+      id,
+      contextLang,
+      isProcessing: isProcessingRef.current,
+      currentActiveId: activeUtteranceId,
+      isSpeaking,
+      isPaused,
+      voicesLoaded: voicesLoadedRef.current,
+      availableVoices: voices.length
+    });
+
+    // Check if speech synthesis is supported
+    if (!('speechSynthesis' in window)) {
+      console.error('❌ Speech synthesis not supported');
+      alert('Speech synthesis not supported in your browser');
+      return;
+    }
+
     if (isProcessingRef.current) {
+      console.log('⏳ Already processing, skipping');
       return;
     }
     
@@ -152,11 +201,15 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const isThisMessageActive = id === activeUtteranceId;
 
     try {
+      // Handle pause/resume for currently active message
       if (synth.speaking && isThisMessageActive && utteranceRef.current) {
+        console.log('🎛️ Handling pause/resume for active message');
         if (synth.paused) {
+          console.log('▶️ Resuming speech');
           synth.resume();
           setIsPaused(false);
         } else {
+          console.log('⏸️ Pausing speech');
           synth.pause();
           setIsPaused(true);
         }
@@ -164,15 +217,27 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         return;
       }
 
+      // Stop any current speech
       if (synth.speaking || synth.pending) {
+        console.log('🛑 Stopping current speech');
         synth.cancel();
       }
 
       if (!text.trim()) {
+        console.log('❌ Empty text, not speaking');
         isProcessingRef.current = false;
         return;
       }
 
+      // Wait for voices if not loaded
+      if (!voicesLoadedRef.current && voices.length === 0) {
+        console.log('⏳ Waiting for voices to load...');
+        isProcessingRef.current = false;
+        setTimeout(() => togglePlayPause(text, id, contextLang), 200);
+        return;
+      }
+
+      console.log('🎤 Creating new utterance');
       const detectedLang = detectLanguage(text);
       const voiceLang = contextLang === 'hi' ? 'hi' : detectedLang;
 
@@ -185,6 +250,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         utterance.lang = voice.lang;
       } else {
         utterance.lang = voiceLang === 'hi' ? 'hi-IN' : 'en-IN';
+        console.log('⚠️ No voice selected, using default with lang:', utterance.lang);
       }
       
       utterance.rate = 0.9; 
@@ -192,6 +258,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       utterance.volume = 1.0;
 
       utterance.onstart = () => {
+        console.log('🎵 Speech started');
         setIsSpeaking(true);
         setIsPaused(false);
         setActiveUtteranceId(id);
@@ -199,14 +266,17 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       };
       
       utterance.onpause = () => {
+        console.log('⏸️ Speech paused');
         setIsPaused(true);
       };
       
       utterance.onresume = () => {
+        console.log('▶️ Speech resumed');
         setIsPaused(false);
       };
       
       utterance.onend = () => {
+        console.log('🏁 Speech ended');
         setIsSpeaking(false);
         setIsPaused(false);
         setActiveUtteranceId(null);
@@ -215,7 +285,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       };
       
       utterance.onerror = (e) => {
-        console.error("SpeechSynthesis Error:", e);
+        console.error("❌ SpeechSynthesis Error:", e.error, e);
         setIsSpeaking(false);
         setIsPaused(false);
         setActiveUtteranceId(null);
@@ -223,22 +293,18 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         isProcessingRef.current = false;
       };
       
-      setTimeout(() => {
-        if (utteranceRef.current === utterance && !synth.speaking) {
-          synth.speak(utterance);
-        } else {
-          isProcessingRef.current = false;
-        }
-      }, 100);
+      // Start speaking immediately instead of using setTimeout
+      console.log('🚀 Starting speech synthesis');
+      synth.speak(utterance);
 
     } catch (error) {
-      console.error('Error in togglePlayPause:', error);
+      console.error('❌ Error in togglePlayPause:', error);
       isProcessingRef.current = false;
       setIsSpeaking(false);
       setIsPaused(false);
       setActiveUtteranceId(null);
     }
-  }, [activeUtteranceId, getFemaleVoice, detectLanguage]);
+  }, [activeUtteranceId, getFemaleVoice, detectLanguage, voices.length, isSpeaking, isPaused]);
   
   useEffect(() => {
     stopSpeech();
@@ -269,7 +335,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     isPaused,
     activeUtteranceId,
     autoPlayEnabled,
-    setAutoPlayEnabled,
   };
 
   return (
