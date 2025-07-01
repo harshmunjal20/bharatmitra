@@ -43,19 +43,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     togglePlayPause, 
     isSpeaking, 
     isPaused, 
-    activeUtteranceId,
-    isVoiceInputEnabled,
-    setIsVoiceInputEnabled
+    activeUtteranceId
   } = useContext(UserContext);
 
   const isThisMessageActive = activeUtteranceId === message.id;
   const isMessagePlaying = isThisMessageActive && isSpeaking && !isPaused;
   
   const handleSpeakClick = () => {
-    if (isVoiceInputEnabled) {
-      setIsVoiceInputEnabled(false);
-    }
-    
     togglePlayPause(message.text, message.id, language);
   };
 
