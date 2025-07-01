@@ -47,16 +47,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const isProcessingRef = useRef(false);
 
   const getIndianMaleVoice = useCallback((lang: 'en' | 'hi') => {
-    const findBestVoice = () => {
-  for (const preferredName of PREFERRED_INDIAN_VOICES) {
-    const voice = voices.find(v => v.name.includes(preferredName));
-    if (voice) return voice;
-  }
-  
-  return availableVoices[0] || voices.find(v => v.lang.includes('en-in')) || voices[0];
-};
-
-return findBestVoice();
+   
   const availableVoices = voices.filter(voice => {
     const name = voice.name.toLowerCase();
     const voiceLang = voice.lang.toLowerCase();
