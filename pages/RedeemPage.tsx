@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { UserContext } from '../contexts/UserContext';
 import { REDEEM_PERKS } from '../constants';
 import PerkCard from '../components/PerkCard';
+import Confetti from 'react-confetti';
 
 const RedeemPage: React.FC = () => {
   const { tokenBalance, deductTokens } = useContext(UserContext);
@@ -9,24 +10,34 @@ const RedeemPage: React.FC = () => {
     message: string;
     type: 'success' | 'error';
   } | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const handleRedeem = (perkId: string, price: number) => {
     if (deductTokens(price)) {
       setNotification({
-        message: 'Redemption successful! You will be contacted shortly.',
+        message: '🎉 Redemption successful! You will be contacted shortly.',
         type: 'success',
       });
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
     } else {
       setNotification({
-        message: 'Not enough tokens to redeem this perk.',
+        message: '❌ Not enough tokens to redeem this perk.',
         type: 'error',
       });
     }
+
     setTimeout(() => setNotification(null), 3000);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-red-50 px-4 py-12">
+    <div
+      className="min-h-screen px-4 py-12"
+      style={{ backgroundColor: '#fff6f7' }}
+    >
+      {/* Confetti */}
+      {showConfetti && <Confetti numberOfPieces={200} recycle={false} />}
+
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="text-4xl font-extrabold text-red-700 mb-2 drop-shadow-md">
