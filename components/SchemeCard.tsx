@@ -65,6 +65,7 @@ const FilteredSchemesPage: React.FC = () => {
               {cat}
             </option>
           ))}
+          
         </select>
 
         {/* Tag Checkboxes */}
