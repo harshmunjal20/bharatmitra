@@ -47,7 +47,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const isProcessingRef = useRef(false);
 
   const getIndianMaleVoice = useCallback((lang: 'en' | 'hi') => {
-   
   const availableVoices = voices.filter(voice => {
     const name = voice.name.toLowerCase();
     const voiceLang = voice.lang.toLowerCase();
@@ -290,17 +289,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   useEffect(() => {
     stopSpeech();
   }, [language, stopSpeech]);
-
-  const PREFERRED_INDIAN_VOICES = [
-  'Google हिन्दी',
-  'Microsoft Ravi',
-  'Google Hindi',
-  'Microsoft Hindi',
-  'eSpeak Hindi',
-  'Google English (India)',
-  'Microsoft English (India)',
-];
-  
 
   const addTokens = (amount: number) => {
     setTokenBalance(prevBalance => prevBalance + amount);
