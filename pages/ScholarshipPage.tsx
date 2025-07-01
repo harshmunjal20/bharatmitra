@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { Scholarship, ScholarshipCriteria } from '../types';
-import { SCHOLARSHIPS_DATA } from '../constants';
+import { RECOMMENDED_SCHEMES } from '../constants';
 import { UserContext } from '../contexts/UserContext';
 import ScholarshipCard from '../components/ScholarshipCard';
 
@@ -29,7 +29,7 @@ const ScholarshipPage: React.FC = () => {
       setProfileCompleted(true);
     }
 
-    const filtered = SCHOLARSHIPS_DATA.filter(s => {
+    const filtered = RECOMMENDED_SCHEMES.filter(s => {
       const { eligibility } = s;
       const age = criteria.age ? parseInt(String(criteria.age)) : null;
       const income = criteria.income ? parseInt(String(criteria.income)) : null;

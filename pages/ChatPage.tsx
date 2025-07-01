@@ -8,13 +8,13 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { UserContext } from '../contexts/UserContext';
 
 const ChatPage: React.FC = () => {
-  const { addTokens, language, togglePlayPause } = useContext(UserContext);
+  const { addTokens, language, togglePlayPause, autoPlayEnabled } = useContext(UserContext);
 
   const getInitialMessage = (lang: 'en' | 'hi') => ({
     id: new Date().toISOString() + Math.random(),
     sender: MessageSender.AI,
     text: lang === 'hi'
-      ? 'नमस्ते! मैं भारत मित्र हूँ। आज मैं आपकी मदद कैसे कर सकता हूँ? मुझसे किसी भी सरकारी योजना के बारे में पूछें।'
+      ? 'नमस्ते! मैं भारत मित्र हूँ। आज मैं आपकी मदद कैसे कर सकती हूँ? मुझसे किसी भी सरकारी योजना के बारे में पूछें।'
       : 'Namaste! I am Bharat Mitra. How can I help you today? Ask me about any government scheme.',
     timestamp: new Date().toISOString(),
   });
@@ -22,24 +22,51 @@ const ChatPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessageType[]>([getInitialMessage(language)]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  const { transcript, isListening, startListening, stopListening, error: recognitionError } = useSpeechRecognition(language);
+  const tokensAddedRef = useRef(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const handleTranscriptComplete = useCallback((transcript: string) => {
+    setInput(transcript);
+  }, []);
+
+  const {
+    transcript,
+    isListening,
+    toggleVoiceInput,
+    disableVoiceInput,
+    isEnabled,
+    error: recognitionError
+  } = useSpeechRecognition(language, handleTranscriptComplete);
 
   useEffect(() => {
     setMessages([getInitialMessage(language)]);
   }, [language]);
 
   useEffect(() => {
-    setInput(transcript);
-  }, [transcript]);
-
-  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const cleanAIResponse = (text: string): string => {
+    const patterns = [
+      /^.*?(namaste|hello|hi)[\s,:-]*/gi,
+      /^.*?(i am|i'm)\s+bharat\s+mitra[\s,:-]*/gi,
+      /^.*?here\s+is\s+(the\s+)?answer[\s,:-]*/gi,
+      /^thanks?.*/gi,
+      /^धन्यवाद.*$/gi,
+      /^नमस्ते.*$/gi,
+      /^मैं\s+भारत\s+मित्र.*$/gi,
+    ];
+
+    let cleaned = text;
+    patterns.forEach(p => { cleaned = cleaned.replace(p, ''); });
+
+    return cleaned.trim().replace(/\s{2,}/g, ' ');
+  };
+
   const handleSendMessage = useCallback(async () => {
-    if (input.trim() === '' || isLoading) return;
+    if (!input.trim() || isLoading) return;
+
+    disableVoiceInput();
 
     const userMessage: ChatMessageType = {
       id: new Date().toISOString() + Math.random(),
@@ -47,49 +74,52 @@ const ChatPage: React.FC = () => {
       text: input,
       timestamp: new Date().toISOString(),
     };
+
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    tokensAddedRef.current = false;
 
     try {
-      const aiResponseText = await getSchemeAdvice(input, language);
-
-      const friendlyGreeting = language === 'hi'
-        ? `नमस्ते, मैं भारत मित्र हूँ। आपके सवाल का जवाब यहाँ है...\n\n`
-        : `Namaste, I am Bharat Mitra. Here is the answer to your question...\n\n`;
+      const rawResponse = await getSchemeAdvice(input, language);
+      const cleanedResponse = cleanAIResponse(rawResponse);
 
       const aiMessage: ChatMessageType = {
         id: new Date().toISOString() + Math.random(),
         sender: MessageSender.AI,
-        text: aiResponseText,
+        text: cleanedResponse,
         timestamp: new Date().toISOString(),
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      togglePlayPause(friendlyGreeting + aiResponseText, aiMessage.id, language);
-      addTokens(10);
-    } catch (error) {
-      console.error('Error fetching AI response:', error);
 
-      const errorMessageText = language === 'hi'
+      if (!tokensAddedRef.current) {
+        addTokens(10);
+        tokensAddedRef.current = true;
+      }
+
+      if (autoPlayEnabled) {
+        setTimeout(() => {
+          togglePlayPause(cleanedResponse, aiMessage.id, language);
+        }, 100);
+      }
+    } catch (error) {
+      const fallback = language === 'hi'
         ? 'माफ़ करें, कुछ त्रुटि हुई है। कृपया फिर से कोशिश करें।'
         : 'Sorry, I encountered an error. Please try again.';
-
-      const errorMessage: ChatMessageType = {
+      setMessages(prev => [...prev, {
         id: new Date().toISOString() + Math.random(),
         sender: MessageSender.AI,
-        text: errorMessageText,
-        timestamp: new Date().toISOString(),
-      };
-
-      setMessages(prev => [...prev, errorMessage]);
+        text: fallback,
+        timestamp: new Date().toISOString()
+      }]);
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, addTokens, togglePlayPause, language]);
+  }, [input, isLoading, language, addTokens, togglePlayPause, autoPlayEnabled, disableVoiceInput]);
 
   const handleMicClick = () => {
-    isListening ? stopListening() : startListening();
+    toggleVoiceInput();
   };
 
   return (
@@ -123,12 +153,12 @@ const ChatPage: React.FC = () => {
               {recognitionError}
             </div>
           )}
-
           <div className="flex items-center space-x-3">
             <button
               onClick={handleMicClick}
               className={`flex-shrink-0 p-3 rounded-full transition-colors duration-200 ${
-                isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-bharat-blue-100 text-bharat-blue-700 hover:bg-bharat-blue-200'
+                isEnabled ? (isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-green-500 text-white') 
+                          : 'bg-bharat-blue-100 text-bharat-blue-700 hover:bg-bharat-blue-200'
               }`}
               aria-label={isListening ? 'Stop recording' : 'Start recording'}
             >
@@ -140,13 +170,13 @@ const ChatPage: React.FC = () => {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder={isListening ? 'Listening...' : 'Type your question here...'}
-              className="flex-grow w-full px-4 py-3 border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-bharat-blue-500 transition"
+              className="flex-grow px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-bharat-blue-500"
               disabled={isLoading}
             />
             <button
               onClick={handleSendMessage}
               disabled={isLoading || input.trim() === ''}
-              className="flex-shrink-0 bg-bharat-blue-700 text-white p-3 rounded-full hover:bg-bharat-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-110"
+              className="flex-shrink-0 bg-bharat-blue-700 text-white p-3 rounded-full hover:bg-bharat-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-transform duration-200 hover:scale-110"
               aria-label="Send message"
             >
               <SendIcon className="h-6 w-6" />
