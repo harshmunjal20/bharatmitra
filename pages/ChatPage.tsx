@@ -8,7 +8,7 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { UserContext } from '../contexts/UserContext';
 
 const ChatPage: React.FC = () => {
-  const { addTokens, language } = useContext(UserContext);
+  const { addTokens, language, stopSpeech } = useContext(UserContext);
   
   const getInitialMessage = (lang: 'en' | 'hi') => ({
     id: new Date().toISOString() + Math.random(),
@@ -22,8 +22,32 @@ const ChatPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessageType[]>([getInitialMessage(language)]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isVoiceInputActive, setIsVoiceInputActive] = useState(false);
   
-  const { transcript, isListening, startListening, stopListening, error: recognitionError } = useSpeechRecognition(language);
+  const detectInputLanguage = useCallback((text: string): 'en' | 'hi' => {
+    const hindiPattern = /[\u0900-\u097F]/;
+    const hindiCharCount = (text.match(/[\u0900-\u097F]/g) || []).length;
+    const totalChars = text.replace(/\s/g, '').length;
+    
+    return hindiCharCount / totalChars > 0.2 ? 'hi' : 'en';
+  }, []);
+
+  const handleTranscriptComplete = useCallback((finalTranscript: string) => {
+    console.log('Transcript completed:', finalTranscript);
+    setInput(finalTranscript);
+    setIsVoiceInputActive(false);
+    
+    setTimeout(() => {
+      if (finalTranscript.trim()) {
+        handleSendMessageWithText(finalTranscript.trim());
+      }
+    }, 500);
+  }, []);
+
+  const { transcript, isListening, startListening, stopListening, error: recognitionError } = useSpeechRecognition(
+    language, 
+    handleTranscriptComplete
+  );
   
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -32,20 +56,28 @@ const ChatPage: React.FC = () => {
   }, [language]);
 
   useEffect(() => {
-    setInput(transcript);
-  }, [transcript]);
+    if (isListening && transcript && !transcript.includes('[FINAL]')) {
+      setInput(transcript);
+    }
+  }, [transcript, isListening]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-  
-  const handleSendMessage = useCallback(async () => {
-    if (input.trim() === '' || isLoading) return;
+
+  useEffect(() => {
+    setIsVoiceInputActive(isListening);
+  }, [isListening]);
+
+  const handleSendMessageWithText = useCallback(async (messageText: string) => {
+    if (messageText.trim() === '' || isLoading) return;
+
+    stopSpeech();
 
     const userMessage: ChatMessageType = {
       id: new Date().toISOString() + Math.random(),
       sender: MessageSender.USER,
-      text: input,
+      text: messageText,
       timestamp: new Date().toISOString(),
     };
     setMessages(prev => [...prev, userMessage]);
@@ -53,7 +85,13 @@ const ChatPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const aiResponseText = await getSchemeAdvice(input, language);
+      const inputLanguage = detectInputLanguage(messageText);
+      
+      const responseLanguage = language === 'hi' ? 'hi' : inputLanguage;
+      
+      console.log(`User input language: ${inputLanguage}, App language: ${language}, Response language: ${responseLanguage}`);
+
+      const aiResponseText = await getSchemeAdvice(messageText, responseLanguage);
 
       const aiMessage: ChatMessageType = {
         id: new Date().toISOString() + Math.random(),
@@ -63,7 +101,6 @@ const ChatPage: React.FC = () => {
       };
       
       setMessages(prev => [...prev, aiMessage]);
-      
 
     } catch (error) {
       console.error('Error fetching AI response:', error);
@@ -81,20 +118,44 @@ const ChatPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, addTokens, language]);
+  }, [isLoading, addTokens, language, detectInputLanguage, stopSpeech]);
+  
+  const handleSendMessage = useCallback(async () => {
+    await handleSendMessageWithText(input);
+  }, [input, handleSendMessageWithText]);
 
-  const handleMicClick = () => {
-    if (isListening) {
+  const handleMicClick = useCallback(() => {
+    if (isVoiceInputActive || isListening) {
       stopListening();
+      setIsVoiceInputActive(false);
     } else {
+      stopSpeech();
+      
+      setInput('');
+      setIsVoiceInputActive(true);
       startListening();
     }
+  }, [isVoiceInputActive, isListening, startListening, stopListening, stopSpeech]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isVoiceInputActive) {
+      stopListening();
+      setIsVoiceInputActive(false);
+    }
+    setInput(e.target.value);
   };
   
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] max-w-3xl mx-auto bg-white rounded-xl shadow-2xl border border-gray-200">
       <div className="p-4 border-b">
-        <h2 className="text-lg font-bold text-bharat-blue-900">Chat with Bharat Mitra</h2>
+        <h2 className="text-lg font-bold text-bharat-blue-900">
+          Chat with Bharat Mitra
+          {language === 'en' && (
+            <span className="text-sm font-normal text-gray-600 ml-2">
+              (Smart Language Detection)
+            </span>
+          )}
+        </h2>
       </div>
       <div className="flex-grow p-6 overflow-y-auto">
         <div className="space-y-6">
@@ -119,28 +180,49 @@ const ChatPage: React.FC = () => {
                 {recognitionError}
             </div>
         )}
+        {isVoiceInputActive && (
+          <div className="text-center text-blue-600 bg-blue-50 p-2 rounded-md mb-2 text-sm animate-pulse">
+            🎤 {language === 'hi' ? 'सुन रहा हूँ...' : 'Listening...'} 
+            <span className="text-xs text-gray-500 ml-2">
+              {language === 'hi' ? '(3 सेकंड निष्क्रियता के बाद स्वतः भेजा जाएगा)' : '(Auto-send after 3 seconds of silence)'}
+            </span>
+          </div>
+        )}
         <div className="flex items-center space-x-3">
           <button 
             onClick={handleMicClick}
-            className={`flex-shrink-0 p-3 rounded-full transition-colors duration-200 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-bharat-blue-100 text-bharat-blue-700 hover:bg-bharat-blue-200'}`}
-            aria-label={isListening ? 'Stop recording' : 'Start recording'}
+            className={`flex-shrink-0 p-3 rounded-full transition-all duration-200 ${
+              isVoiceInputActive 
+                ? 'bg-red-500 text-white animate-pulse shadow-lg scale-110' 
+                : 'bg-bharat-blue-100 text-bharat-blue-700 hover:bg-bharat-blue-200 hover:scale-105'
+            }`}
+            aria-label={isVoiceInputActive ? 'Stop recording' : 'Start recording'}
+            title={isVoiceInputActive ? 'Click to stop recording' : 'Click to start voice input'}
           >
             <MicIcon className="h-6 w-6" />
           </button>
           <input
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder={isListening ? "Listening..." : "Type your question here..."}
-            className="flex-grow w-full px-4 py-3 border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-bharat-blue-500 transition"
+            onChange={handleInputChange}
+            onKeyDown={(e) => e.key === 'Enter' && !isVoiceInputActive && handleSendMessage()}
+            placeholder={
+              isVoiceInputActive 
+                ? (language === 'hi' ? "सुन रहा हूँ..." : "Listening...") 
+                : (language === 'hi' ? "यहाँ अपना प्रश्न लिखें..." : "Type your question here...")
+            }
+            className={`flex-grow w-full px-4 py-3 border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-bharat-blue-500 transition ${
+              isVoiceInputActive ? 'bg-blue-50 border-blue-300' : ''
+            }`}
             disabled={isLoading}
+            readOnly={isVoiceInputActive}
           />
           <button
             onClick={handleSendMessage}
-            disabled={isLoading || input.trim() === ''}
-            className="flex-shrink-0 bg-bharat-blue-700 text-white p-3 rounded-full hover:bg-bharat-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-110"
+            disabled={isLoading || input.trim() === '' || isVoiceInputActive}
+            className="flex-shrink-0 bg-bharat-blue-700 text-white p-3 rounded-full hover:bg-bharat-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-110 disabled:scale-100"
             aria-label="Send message"
+            title={isVoiceInputActive ? "Voice input active - message will auto-send" : "Send message"}
           >
             <SendIcon className="h-6 w-6" />
           </button>
