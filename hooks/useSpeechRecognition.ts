@@ -58,15 +58,50 @@ declare global {
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-export const useSpeechRecognition = (lang: 'en' | 'hi') => {
+export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (transcript: string) => void) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const listeningIntentRef = useRef(false);
+  const inactivityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const finalTranscriptRef = useRef('');
   const isStartingRef = useRef(false);
-  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSpeechTimeRef = useRef<number>(0);
+
+  const clearInactivityTimeout = useCallback(() => {
+    if (inactivityTimeoutRef.current) {
+      clearTimeout(inactivityTimeoutRef.current);
+      inactivityTimeoutRef.current = null;
+    }
+  }, []);
+
+  const setInactivityTimeout = useCallback(() => {
+    clearInactivityTimeout();
+    inactivityTimeoutRef.current = setTimeout(() => {
+      console.log('Inactivity timeout reached, stopping speech recognition');
+      stopListening();
+      
+      if (finalTranscriptRef.current.trim() && onTranscriptComplete) {
+        onTranscriptComplete(finalTranscriptRef.current.trim());
+      }
+    }, 3000); 
+  }, [clearInactivityTimeout]);
+
+  const stopListening = useCallback(() => {
+    console.log('Stopping speech recognition');
+    clearInactivityTimeout();
+    isStartingRef.current = false;
+    
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (err) {
+        console.error('Error stopping recognition:', err);
+      }
+    }
+    
+    setIsListening(false);
+  }, [clearInactivityTimeout]);
 
   useEffect(() => {
     if (!SpeechRecognitionAPI) {
@@ -77,7 +112,7 @@ export const useSpeechRecognition = (lang: 'en' | 'hi') => {
 
     const recognition = new SpeechRecognitionAPI();
     recognitionRef.current = recognition;
-    recognition.continuous = false; 
+    recognition.continuous = true; 
     recognition.interimResults = true;
     recognition.lang = lang === 'en' ? 'en-IN' : 'hi-IN';
     
@@ -86,20 +121,32 @@ export const useSpeechRecognition = (lang: 'en' | 'hi') => {
       setIsListening(true);
       setError(null);
       isStartingRef.current = false;
+      lastSpeechTimeRef.current = Date.now();
+      setInactivityTimeout(); 
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interimTranscript = '';
       let finalTranscript = finalTranscriptRef.current;
+      let hasNewSpeech = false;
       
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
           finalTranscript += transcript;
           finalTranscriptRef.current = finalTranscript;
+          hasNewSpeech = true;
         } else {
           interimTranscript += transcript;
+          if (transcript.trim()) {
+            hasNewSpeech = true;
+          }
         }
+      }
+      
+      if (hasNewSpeech) {
+        lastSpeechTimeRef.current = Date.now();
+        setInactivityTimeout();
       }
       
       setTranscript(finalTranscript + interimTranscript);
@@ -108,37 +155,18 @@ export const useSpeechRecognition = (lang: 'en' | 'hi') => {
     recognition.onend = () => {
       console.log('Speech recognition ended');
       setIsListening(false);
+      clearInactivityTimeout();
       
-      if (restartTimeoutRef.current) {
-        clearTimeout(restartTimeoutRef.current);
-        restartTimeoutRef.current = null;
-      }
-      
-      if (listeningIntentRef.current && !isStartingRef.current) {
-        restartTimeoutRef.current = setTimeout(() => {
-          if (listeningIntentRef.current && recognitionRef.current && !isStartingRef.current) {
-            try {
-              isStartingRef.current = true;
-              recognitionRef.current.start();
-            } catch (err) {
-              console.error("Failed to restart speech recognition:", err);
-              listeningIntentRef.current = false;
-              setIsListening(false);
-              isStartingRef.current = false;
-            }
-          }
-        }, 100); 
+      if (finalTranscriptRef.current.trim() && onTranscriptComplete) {
+        setTimeout(() => {
+          onTranscriptComplete(finalTranscriptRef.current.trim());
+        }, 100);
       }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.log('Speech recognition error:', event.error);
-      
-      if (restartTimeoutRef.current) {
-        clearTimeout(restartTimeoutRef.current);
-        restartTimeoutRef.current = null;
-      }
-      
+      clearInactivityTimeout();
       isStartingRef.current = false;
       
       if (event.error === 'no-speech') {
@@ -148,29 +176,23 @@ export const useSpeechRecognition = (lang: 'en' | 'hi') => {
       
       if (event.error === 'aborted') {
         setError(null);
-        listeningIntentRef.current = false;
         setIsListening(false);
         return;
       }
       
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         setError('Microphone permission denied. Please allow microphone access.');
-        listeningIntentRef.current = false;
         setIsListening(false);
         return;
       }
       
       setError(`Recognition error: ${event.error}`);
+      setIsListening(false);
     };
 
     return () => {
-      listeningIntentRef.current = false;
+      clearInactivityTimeout();
       isStartingRef.current = false;
-      
-      if (restartTimeoutRef.current) {
-        clearTimeout(restartTimeoutRef.current);
-        restartTimeoutRef.current = null;
-      }
       
       if (recognitionRef.current) {
         recognitionRef.current.stop();
@@ -180,11 +202,11 @@ export const useSpeechRecognition = (lang: 'en' | 'hi') => {
         recognitionRef.current.onstart = null;
       }
     };
-  }, [lang]);
+  }, [lang, setInactivityTimeout, clearInactivityTimeout, onTranscriptComplete]);
   
   const startListening = useCallback(() => {
-    if (!recognitionRef.current || isStartingRef.current) {
-      console.log('Cannot start: recognition not available or already starting');
+    if (!recognitionRef.current || isStartingRef.current || isListening) {
+      console.log('Cannot start: recognition not available, already starting, or already listening');
       return;
     }
     
@@ -196,12 +218,6 @@ export const useSpeechRecognition = (lang: 'en' | 'hi') => {
     setTranscript('');
     finalTranscriptRef.current = '';
     
-    if (restartTimeoutRef.current) {
-      clearTimeout(restartTimeoutRef.current);
-      restartTimeoutRef.current = null;
-    }
-    
-    listeningIntentRef.current = true;
     isStartingRef.current = true;
     
     try {
@@ -211,24 +227,7 @@ export const useSpeechRecognition = (lang: 'en' | 'hi') => {
       isStartingRef.current = false;
       setError('Failed to start speech recognition');
     }
-  }, []);
-
-  const stopListening = useCallback(() => {
-    console.log('Stopping speech recognition');
-    listeningIntentRef.current = false;
-    isStartingRef.current = false;
-    
-    if (restartTimeoutRef.current) {
-      clearTimeout(restartTimeoutRef.current);
-      restartTimeoutRef.current = null;
-    }
-    
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    
-    setIsListening(false);
-  }, []);
+  }, [isListening]);
 
   return { 
     isListening, 
