@@ -64,9 +64,8 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const inactivityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const finalTranscriptRef = useRef('');
   const isStartingRef = useRef(false);
-  const lastSpeechTimeRef = useRef<number>(0);
+  const lastProcessedLengthRef = useRef(0);
 
   const clearInactivityTimeout = useCallback(() => {
     if (inactivityTimeoutRef.current) {
@@ -78,17 +77,11 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
   const setInactivityTimeout = useCallback(() => {
     clearInactivityTimeout();
     inactivityTimeoutRef.current = setTimeout(() => {
-      console.log('Inactivity timeout reached, stopping speech recognition');
       stopListening();
-      
-      if (finalTranscriptRef.current.trim() && onTranscriptComplete) {
-        onTranscriptComplete(finalTranscriptRef.current.trim());
-      }
-    }, 3000); 
+    }, 2000);
   }, [clearInactivityTimeout]);
 
   const stopListening = useCallback(() => {
-    console.log('Stopping speech recognition');
     clearInactivityTimeout();
     isStartingRef.current = false;
     
@@ -105,89 +98,64 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
 
   useEffect(() => {
     if (!SpeechRecognitionAPI) {
-      console.warn('Speech Recognition is not supported in this browser.');
       setError('Speech Recognition is not supported in this browser.');
       return;
     }
 
     const recognition = new SpeechRecognitionAPI();
     recognitionRef.current = recognition;
-    recognition.continuous = true; 
-    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.interimResults = false;
     recognition.lang = lang === 'en' ? 'en-IN' : 'hi-IN';
+    recognition.maxAlternatives = 1;
     
     recognition.onstart = () => {
-      console.log('Speech recognition started');
       setIsListening(true);
       setError(null);
       isStartingRef.current = false;
-      lastSpeechTimeRef.current = Date.now();
-      setInactivityTimeout(); 
+      lastProcessedLengthRef.current = 0;
+      setInactivityTimeout();
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interimTranscript = '';
-      let finalTranscript = finalTranscriptRef.current;
-      let hasNewSpeech = false;
+      let finalTranscript = '';
       
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const transcript = event.results[i][0].transcript;
+      for (let i = 0; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-          finalTranscriptRef.current = finalTranscript;
-          hasNewSpeech = true;
-        } else {
-          interimTranscript += transcript;
-          if (transcript.trim()) {
-            hasNewSpeech = true;
-          }
+          finalTranscript += event.results[i][0].transcript;
         }
       }
       
-      if (hasNewSpeech) {
-        lastSpeechTimeRef.current = Date.now();
-        setInactivityTimeout();
+      if (finalTranscript) {
+        setTranscript(finalTranscript.trim());
+        clearInactivityTimeout();
+        if (onTranscriptComplete) {
+          onTranscriptComplete(finalTranscript.trim());
+        }
       }
-      
-      setTranscript(finalTranscript + interimTranscript);
     };
 
     recognition.onend = () => {
-      console.log('Speech recognition ended');
       setIsListening(false);
       clearInactivityTimeout();
-      
-      if (finalTranscriptRef.current.trim() && onTranscriptComplete) {
-        setTimeout(() => {
-          onTranscriptComplete(finalTranscriptRef.current.trim());
-        }, 100);
-      }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.log('Speech recognition error:', event.error);
       clearInactivityTimeout();
       isStartingRef.current = false;
       
       if (event.error === 'no-speech') {
         setError(null);
-        return;
-      }
-      
-      if (event.error === 'aborted') {
+      } else if (event.error === 'aborted') {
         setError(null);
         setIsListening(false);
-        return;
-      }
-      
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         setError('Microphone permission denied. Please allow microphone access.');
         setIsListening(false);
-        return;
+      } else {
+        setError(`Recognition error: ${event.error}`);
+        setIsListening(false);
       }
-      
-      setError(`Recognition error: ${event.error}`);
-      setIsListening(false);
     };
 
     return () => {
@@ -206,7 +174,6 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
   
   const startListening = useCallback(() => {
     if (!recognitionRef.current || isStartingRef.current || isListening) {
-      console.log('Cannot start: recognition not available, already starting, or already listening');
       return;
     }
     
@@ -216,7 +183,7 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
     
     setError(null);
     setTranscript('');
-    finalTranscriptRef.current = '';
+    lastProcessedLengthRef.current = 0;
     
     isStartingRef.current = true;
     
