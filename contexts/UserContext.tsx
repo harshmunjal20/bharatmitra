@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useState,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-} from 'react';
+import React, { createContext, useState, ReactNode, useCallback, useEffect, useRef } from 'react';
 
 const generateUserId = () => `user_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -17,6 +10,7 @@ interface UserContextType {
   language: 'en' | 'hi';
   setLanguage: (lang: 'en' | 'hi') => void;
   togglePlayPause: (text: string, id: string, lang: 'en' | 'hi') => void;
+  stopSpeech: () => void;
   isSpeaking: boolean;
   isPaused: boolean;
   activeUtteranceId: string | null;
@@ -30,6 +24,7 @@ export const UserContext = createContext<UserContextType>({
   language: 'en',
   setLanguage: () => {},
   togglePlayPause: () => {},
+  stopSpeech: () => {},
   isSpeaking: false,
   isPaused: false,
   activeUtteranceId: null,
@@ -49,106 +44,279 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [activeUtteranceId, setActiveUtteranceId] = useState<string | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const isProcessingRef = useRef(false);
 
-  // Load available voices (delayed for async support)
+  const getIndianMaleVoice = useCallback((lang: 'en' | 'hi') => {
+    const availableVoices = voices.filter(voice => {
+      const name = voice.name.toLowerCase();
+      const voiceLang = voice.lang.toLowerCase();
+      
+      const isIndianMale = (
+        name.includes('male') || 
+        name.includes('man') || 
+        (!name.includes('female') && !name.includes('woman'))
+      );
+      
+      if (lang === 'hi') {
+        return (
+          isIndianMale && (
+            voiceLang.startsWith('hi') || 
+            voiceLang === 'en-in' ||
+            name.includes('indian')
+          )
+        );
+      } else {
+        return (
+          isIndianMale && (
+            voiceLang === 'en-in' || 
+            voiceLang.startsWith('en-') ||
+            name.includes('indian')
+          )
+        );
+      }
+    });
+
+    if (availableVoices.length === 0) {
+      const maleVoices = voices.filter(voice => {
+        const name = voice.name.toLowerCase();
+        return (
+          !name.includes('female') && 
+          !name.includes('woman') &&
+          (lang === 'hi' ? voice.lang.startsWith('hi') || voice.lang.startsWith('en-') : voice.lang.startsWith('en-'))
+        );
+      });
+      return maleVoices[0] || null;
+    }
+
+    const preferredVoice = availableVoices.find(voice => {
+      const name = voice.name.toLowerCase();
+      return (
+        name.includes('google') || 
+        name.includes('microsoft') || 
+        name.includes('premium') ||
+        name.includes('neural')
+      );
+    });
+
+    return preferredVoice || availableVoices[0] || null;
+  }, [voices]);
+
   useEffect(() => {
     const loadVoices = () => {
-      setTimeout(() => {
-        const availableVoices = window.speechSynthesis.getVoices();
-        setVoices(availableVoices);
-      }, 100);
+      const loadedVoices = window.speechSynthesis.getVoices();
+      console.log('Available voices:', loadedVoices.map(v => ({ name: v.name, lang: v.lang })));
+      setVoices(loadedVoices);
     };
+    
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
-
+    
     return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-      window.speechSynthesis.cancel();
+        window.speechSynthesis.onvoiceschanged = null;
+        window.speechSynthesis.cancel();
     };
   }, []);
 
-  // Cancel ongoing speech on language change
-  useEffect(() => {
-    window.speechSynthesis.cancel();
-  }, [language]);
-
-  const togglePlayPause = useCallback(
-    (text: string, id: string, lang: 'en' | 'hi') => {
-      const synth = window.speechSynthesis;
-      const isThisMessageActive = id === activeUtteranceId;
-
-      const voice =
-        voices.find(
-          (v) =>
-            (lang === 'hi' && v.lang === 'hi-IN' && v.name.includes('Female')) ||
-            (lang === 'hi' && v.lang === 'hi-IN')
-        ) ||
-        voices.find(
-          (v) =>
-            (lang === 'en' && v.lang === 'en-IN' && v.name.includes('Female')) ||
-            (lang === 'en' && v.name === 'Google UK English Female') ||
-            (lang === 'en' && v.lang.startsWith('en-'))
-        );
-
-      if (!voice) {
-        console.warn(`No voice found for language: ${lang}`);
-      }
-
-      if (synth.speaking && isThisMessageActive) {
-        synth.paused ? synth.resume() : synth.pause();
-      } else {
-        synth.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utteranceRef.current = utterance;
-
-        if (voice) {
-          utterance.voice = voice;
-          utterance.lang = voice.lang;
-        }
-
-        utterance.rate = 0.95;
-        utterance.pitch = 1;
-
-        utterance.onstart = () => {
-          setIsSpeaking(true);
-          setIsPaused(false);
-          setActiveUtteranceId(id);
-        };
-        utterance.onpause = () => setIsPaused(true);
-        utterance.onresume = () => setIsPaused(false);
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          setIsPaused(false);
-          setActiveUtteranceId(null);
-          utteranceRef.current = null;
-        };
-        utterance.onerror = (e) => {
-          console.error('SpeechSynthesis Error', e);
-          setIsSpeaking(false);
-          setIsPaused(false);
-          setActiveUtteranceId(null);
-        };
-
-        synth.speak(utterance);
-      }
-    },
-    [activeUtteranceId, voices]
-  );
-
-  const addTokens = useCallback((amount: number) => {
-    setTokenBalance((prev) => prev + amount);
+  const detectLanguage = useCallback((text: string): 'en' | 'hi' => {
+    const hindiPattern = /[\u0900-\u097F]/;
+    const hindiCharCount = (text.match(/[\u0900-\u097F]/g) || []).length;
+    const totalChars = text.replace(/\s/g, '').length;
+    
+    return hindiCharCount / totalChars > 0.2 ? 'hi' : 'en';
   }, []);
 
-  const deductTokens = useCallback((amount: number): boolean => {
+  const cleanTextForTTS = useCallback((text: string): string => {
+    const phrasesToRemove = [
+      /here\s+is\s+your\s+answer[:\s]*/gi,
+      /here's\s+your\s+answer[:\s]*/gi,
+      /your\s+answer\s+is[:\s]*/gi,
+      /the\s+answer\s+is[:\s]*/gi,
+      /here\s+is\s+the\s+answer\s+to\s+your\s+question[:\s.]*/gi,
+      /hello[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*/gi,
+      /hi[,\s]*i'm\s+bharat\s+mitra[,\s.]*/gi,
+      /greetings[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*/gi,
+      /namaste[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*/gi,
+      /i\s+am\s+bharat\s+mitra[,\s.]*/gi,
+      /thank\s+you\s+for\s+asking[,\s.]*/gi,
+      /thank\s+you\s+for\s+your\s+question[,\s.]*/gi,
+      /that's\s+a\s+great\s+question[,\s.]*/gi,
+      /let\s+me\s+help\s+you[,\s.]*/gi,
+      /sure[,\s]*here\s+is[,\s.]*/gi,
+      /of\s+course[,\s.]*/gi,
+      /absolutely[,\s.]*/gi,
+      /certainly[,\s.]*/gi,
+      
+      /धन्यवाद\s+पूछने\s+के\s+लिए[,\s.]*/gi,
+      /आपका\s+स्वागत\s+है[,\s.]*/gi,
+      /यहाँ\s+आपके\s+सवाल\s+का\s+जवाब\s+है[:\s.]*/gi,
+      /आपके\s+प्रश्न\s+का\s+उत्तर\s+यहाँ\s+है[:\s.]*/gi,
+      /नमस्ते[,\s]*मैं\s+भारत\s+मित्र\s+हूँ[,\s.]*/gi,
+      /मैं\s+भारत\s+मित्र\s+हूँ[,\s.]*/gi,
+      
+      /\*\*[^*]*\*\*/g,
+      /\*[^*]*\*/g,
+      /#{1,6}\s/g,
+      /```[\s\S]*?```/g,
+      /`[^`]*`/g,
+      /\[[^\]]*\]\([^)]*\)/g,
+    ];
+
+    let cleanedText = text;
+    
+    phrasesToRemove.forEach(pattern => {
+      cleanedText = cleanedText.replace(pattern, '');
+    });
+
+    cleanedText = cleanedText
+      .replace(/\s+/g, ' ')
+      .replace(/^\s*[,.\-:;।]\s*/, '')
+      .replace(/\s*[,.\-:;।]\s*$/, '')
+      .replace(/^[.\s]+/, '')
+      .trim();
+
+    return cleanedText;
+  }, []);
+
+  const stopSpeech = useCallback(() => {
+    const synth = window.speechSynthesis;
+    if (synth.speaking || synth.pending) {
+      synth.cancel();
+    }
+    setIsSpeaking(false);
+    setIsPaused(false);
+    setActiveUtteranceId(null);
+    utteranceRef.current = null;
+    isProcessingRef.current = false;
+  }, []);
+
+  const togglePlayPause = useCallback((text: string, id: string, contextLang: 'en' | 'hi') => {
+    if (isProcessingRef.current) {
+      console.log('Already processing, ignoring call');
+      return;
+    }
+    
+    isProcessingRef.current = true;
+    const synth = window.speechSynthesis;
+    const isThisMessageActive = id === activeUtteranceId;
+
+    try {
+      if (synth.speaking && isThisMessageActive && utteranceRef.current) {
+        if (synth.paused) {
+          synth.resume();
+          setIsPaused(false);
+        } else {
+          synth.pause();
+          setIsPaused(true);
+        }
+        isProcessingRef.current = false;
+        return;
+      }
+
+      if (synth.speaking || synth.pending) {
+        synth.cancel();
+      }
+
+      const cleanedText = cleanTextForTTS(text);
+      
+      if (!cleanedText.trim()) {
+        console.warn('No content to speak after cleaning');
+        isProcessingRef.current = false;
+        return;
+      }
+
+      const detectedLang = detectLanguage(cleanedText);
+      
+      const voiceLang = contextLang === 'hi' ? 'hi' : detectedLang;
+
+      console.log(`Speaking in ${voiceLang} (context: ${contextLang}, detected: ${detectedLang}):`, cleanedText.substring(0, 100) + '...');
+
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
+      utteranceRef.current = utterance;
+
+      const voice = getIndianMaleVoice(voiceLang);
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+        console.log(`Selected voice: ${voice.name} (${voice.lang})`);
+      } else {
+        utterance.lang = voiceLang === 'hi' ? 'hi-IN' : 'en-IN';
+        console.log(`No specific voice found, using lang: ${utterance.lang}`);
+      }
+      
+      utterance.rate = 0.85; 
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      utterance.onstart = () => {
+        console.log('Speech started for:', id);
+        setIsSpeaking(true);
+        setIsPaused(false);
+        setActiveUtteranceId(id);
+        isProcessingRef.current = false;
+      };
+      
+      utterance.onpause = () => {
+        console.log('Speech paused');
+        setIsPaused(true);
+      };
+      
+      utterance.onresume = () => {
+        console.log('Speech resumed');
+        setIsPaused(false);
+      };
+      
+      utterance.onend = () => {
+        console.log('Speech ended for:', id);
+        setIsSpeaking(false);
+        setIsPaused(false);
+        setActiveUtteranceId(null);
+        utteranceRef.current = null;
+        isProcessingRef.current = false;
+      };
+      
+      utterance.onerror = (e) => {
+        console.error("SpeechSynthesis Error:", e);
+        setIsSpeaking(false);
+        setIsPaused(false);
+        setActiveUtteranceId(null);
+        utteranceRef.current = null;
+        isProcessingRef.current = false;
+      };
+      
+      setTimeout(() => {
+        if (utteranceRef.current === utterance && !synth.speaking) {
+          synth.speak(utterance);
+        } else {
+          isProcessingRef.current = false;
+        }
+      }, 100);
+
+    } catch (error) {
+      console.error('Error in togglePlayPause:', error);
+      isProcessingRef.current = false;
+      setIsSpeaking(false);
+      setIsPaused(false);
+      setActiveUtteranceId(null);
+    }
+  }, [activeUtteranceId, getIndianMaleVoice, cleanTextForTTS, detectLanguage]);
+  
+  useEffect(() => {
+    stopSpeech();
+  }, [language, stopSpeech]);
+
+  const addTokens = (amount: number) => {
+    setTokenBalance(prevBalance => prevBalance + amount);
+  };
+
+  const deductTokens = (amount: number): boolean => {
     if (tokenBalance >= amount) {
-      setTokenBalance((prev) => prev - amount);
+      setTokenBalance(prevBalance => prevBalance - amount);
       return true;
     }
     return false;
-  }, [tokenBalance]);
+  };
 
-  const value: UserContextType = {
+  const value = {
     userId,
     tokenBalance,
     addTokens,
@@ -156,10 +324,15 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     language,
     setLanguage,
     togglePlayPause,
+    stopSpeech,
     isSpeaking,
     isPaused,
     activeUtteranceId,
   };
 
-  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+  return (
+    <UserContext.Provider value={value}>
+      {children}
+    </UserContext.Provider>
+  );
 };

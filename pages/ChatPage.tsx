@@ -24,7 +24,6 @@ const ChatPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const { transcript, isListening, startListening, stopListening, error: recognitionError } = useSpeechRecognition(language);
-
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,6 +53,7 @@ const ChatPage: React.FC = () => {
 
     try {
       const aiResponseText = await getSchemeAdvice(input, language);
+
       const friendlyGreeting = language === 'hi'
         ? `नमस्ते, मैं भारत मित्र हूँ। आपके सवाल का जवाब यहाँ है...\n\n`
         : `Namaste, I am Bharat Mitra. Here is the answer to your question...\n\n`;
@@ -64,17 +64,24 @@ const ChatPage: React.FC = () => {
         text: aiResponseText,
         timestamp: new Date().toISOString(),
       };
+
       setMessages(prev => [...prev, aiMessage]);
       togglePlayPause(friendlyGreeting + aiResponseText, aiMessage.id, language);
       addTokens(10);
     } catch (error) {
       console.error('Error fetching AI response:', error);
+
+      const errorMessageText = language === 'hi'
+        ? 'माफ़ करें, कुछ त्रुटि हुई है। कृपया फिर से कोशिश करें।'
+        : 'Sorry, I encountered an error. Please try again.';
+
       const errorMessage: ChatMessageType = {
         id: new Date().toISOString() + Math.random(),
         sender: MessageSender.AI,
-        text: 'Sorry, I encountered an error. Please try again.',
+        text: errorMessageText,
         timestamp: new Date().toISOString(),
       };
+
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -91,6 +98,7 @@ const ChatPage: React.FC = () => {
         <div className="p-4 border-b bg-bharat-blue-50 rounded-t-xl">
           <h2 className="text-lg font-bold text-bharat-blue-900">Chat with Bharat Mitra</h2>
         </div>
+
         <div className="flex-grow p-6 overflow-y-auto">
           <div className="space-y-6">
             {messages.map((msg) => (
@@ -108,16 +116,20 @@ const ChatPage: React.FC = () => {
             <div ref={chatEndRef} />
           </div>
         </div>
+
         <div className="border-t-2 border-gray-200 p-4 bg-gray-50 rounded-b-xl">
           {recognitionError && (
             <div className="text-center text-red-600 bg-red-100 p-2 rounded-md mb-2 text-sm">
               {recognitionError}
             </div>
           )}
+
           <div className="flex items-center space-x-3">
             <button
               onClick={handleMicClick}
-              className={`flex-shrink-0 p-3 rounded-full transition-colors duration-200 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-bharat-blue-100 text-bharat-blue-700 hover:bg-bharat-blue-200'}`}
+              className={`flex-shrink-0 p-3 rounded-full transition-colors duration-200 ${
+                isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-bharat-blue-100 text-bharat-blue-700 hover:bg-bharat-blue-200'
+              }`}
               aria-label={isListening ? 'Stop recording' : 'Start recording'}
             >
               <MicIcon className="h-6 w-6" />
