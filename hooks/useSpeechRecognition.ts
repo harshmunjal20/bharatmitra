@@ -76,17 +76,16 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
   }, []);
 
   const setInactivityTimeout = useCallback(() => {
-  clearInactivityTimeout();
-  inactivityTimeoutRef.current = setTimeout(() => {
-    console.log('Inactivity timeout reached, stopping speech recognition');
-    const finalText = finalTranscriptRef.current.trim();
-    stopListening();
-    
-    if (finalText && onTranscriptComplete) {
-      onTranscriptComplete(finalText);
-    }
-  }, 3000); 
-}, [clearInactivityTimeout, onTranscriptComplete]);
+    clearInactivityTimeout();
+    inactivityTimeoutRef.current = setTimeout(() => {
+      console.log('Inactivity timeout reached, stopping speech recognition');
+      stopListening();
+      
+      if (finalTranscriptRef.current.trim() && onTranscriptComplete) {
+        onTranscriptComplete(finalTranscriptRef.current.trim());
+      }
+    }, 3000); 
+  }, [clearInactivityTimeout]);
 
   const stopListening = useCallback(() => {
     console.log('Stopping speech recognition');
@@ -154,17 +153,16 @@ export const useSpeechRecognition = (lang: 'en' | 'hi', onTranscriptComplete?: (
     };
 
     recognition.onend = () => {
-  console.log('Speech recognition ended');
-  setIsListening(false);
-  clearInactivityTimeout();
-  
-  const finalText = finalTranscriptRef.current.trim();
-  if (finalText && onTranscriptComplete) {
-    setTimeout(() => {
-      onTranscriptComplete(finalText);
-    }, 100);
-  }
-};
+      console.log('Speech recognition ended');
+      setIsListening(false);
+      clearInactivityTimeout();
+      
+      if (finalTranscriptRef.current.trim() && onTranscriptComplete) {
+        setTimeout(() => {
+          onTranscriptComplete(finalTranscriptRef.current.trim());
+        }, 100);
+      }
+    };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.log('Speech recognition error:', event.error);
