@@ -2,8 +2,8 @@ import React, { useContext } from 'react';
 import { ChatMessage as ChatMessageType, MessageSender } from '../types';
 import { BotIcon } from './icons/BotIcon';
 import { UserIcon } from './icons/UserIcon';
-import { PlayIcon } from './icons/PlayIcon';
-import { PauseIcon } from './icons/PauseIcon';
+// import { PlayIcon } from './icons/PlayIcon';
+// import { PauseIcon } from './icons/PauseIcon';
 import { UserContext } from '../contexts/UserContext';
 
 interface ChatMessageProps {
@@ -72,17 +72,17 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
       <div className={`relative px-4 py-3 rounded-xl max-w-lg ${isAI ? 'bg-bharat-blue-50 border border-bharat-blue-100' : 'bg-bharat-green-100 border border-bharat-green-200'}`}>
         <LinkifiedText text={message.text} />
         {isAI && (
-           <button 
-              onClick={handleSpeakClick} 
-              className="absolute -bottom-3 -right-3 p-1 bg-white rounded-full shadow-md text-gray-500 hover:text-bharat-blue-600 hover:bg-gray-50 transition-all duration-200 hover:scale-110"
-              aria-label="Speak this message"
-              title={isThisMessageActive && isSpeaking && !isPaused ? "Pause speech" : "Play speech"}
-            >
-              {isThisMessageActive && isSpeaking && !isPaused 
-                ? <PauseIcon className="w-4 h-4 text-bharat-blue-700" /> 
-                : <PlayIcon className="w-4 h-4" />
-              }
-           </button>
+           // <button 
+           //    onClick={handleSpeakClick} 
+           //    className="absolute -bottom-3 -right-3 p-1 bg-white rounded-full shadow-md text-gray-500 hover:text-bharat-blue-600 hover:bg-gray-50 transition-all duration-200 hover:scale-110"
+           //    aria-label="Speak this message"
+           //    title={isThisMessageActive && isSpeaking && !isPaused ? "Pause speech" : "Play speech"}
+           //  >
+           //    {isThisMessageActive && isSpeaking && !isPaused 
+           //      ? <PauseIcon className="w-4 h-4 text-bharat-blue-700" /> 
+           //      : <PlayIcon className="w-4 h-4" />
+           //    }
+           // </button>
         )}
       </div>
     </div>
