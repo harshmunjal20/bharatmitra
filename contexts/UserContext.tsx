@@ -46,81 +46,132 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const isProcessingRef = useRef(false);
 
-  const englishVoice = voices.find(v => v.lang === 'en-IN' && v.name.includes('Female')) || 
-                     voices.find(v => v.name === 'Google UK English Female') || 
-                     voices.find(v => v.lang.startsWith('en-'));
-  const hindiVoice = voices.find(v => v.lang === 'hi-IN' && v.name.includes('Female')) || 
-                    voices.find(v => v.lang === 'hi-IN');
+  const getIndianMaleVoice = useCallback((lang: 'en' | 'hi') => {
+    const availableVoices = voices.filter(voice => {
+      const name = voice.name.toLowerCase();
+      const voiceLang = voice.lang.toLowerCase();
+      
+      const isIndianMale = (
+        name.includes('male') || 
+        name.includes('man') || 
+        (!name.includes('female') && !name.includes('woman'))
+      );
+      
+      if (lang === 'hi') {
+        return (
+          isIndianMale && (
+            voiceLang.startsWith('hi') || 
+            voiceLang === 'en-in' ||
+            name.includes('indian')
+          )
+        );
+      } else {
+        return (
+          isIndianMale && (
+            voiceLang === 'en-in' || 
+            voiceLang.startsWith('en-') ||
+            name.includes('indian')
+          )
+        );
+      }
+    });
+
+    if (availableVoices.length === 0) {
+      const maleVoices = voices.filter(voice => {
+        const name = voice.name.toLowerCase();
+        return (
+          !name.includes('female') && 
+          !name.includes('woman') &&
+          (lang === 'hi' ? voice.lang.startsWith('hi') || voice.lang.startsWith('en-') : voice.lang.startsWith('en-'))
+        );
+      });
+      return maleVoices[0] || null;
+    }
+
+    const preferredVoice = availableVoices.find(voice => {
+      const name = voice.name.toLowerCase();
+      return (
+        name.includes('google') || 
+        name.includes('microsoft') || 
+        name.includes('premium') ||
+        name.includes('neural')
+      );
+    });
+
+    return preferredVoice || availableVoices[0] || null;
+  }, [voices]);
 
   useEffect(() => {
-    const loadVoices = () => setVoices(window.speechSynthesis.getVoices());
+    const loadVoices = () => {
+      const loadedVoices = window.speechSynthesis.getVoices();
+      console.log('Available voices:', loadedVoices.map(v => ({ name: v.name, lang: v.lang })));
+      setVoices(loadedVoices);
+    };
+    
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
+    
     return () => {
         window.speechSynthesis.onvoiceschanged = null;
         window.speechSynthesis.cancel();
     };
   }, []);
 
+  const detectLanguage = useCallback((text: string): 'en' | 'hi' => {
+    const hindiPattern = /[\u0900-\u097F]/;
+    const hindiCharCount = (text.match(/[\u0900-\u097F]/g) || []).length;
+    const totalChars = text.replace(/\s/g, '').length;
+    
+    return hindiCharCount / totalChars > 0.2 ? 'hi' : 'en';
+  }, []);
+
   const cleanTextForTTS = useCallback((text: string): string => {
-    // More comprehensive cleaning patterns
     const phrasesToRemove = [
-      // Common AI response prefixes
       /here\s+is\s+your\s+answer[:\s]*/gi,
       /here's\s+your\s+answer[:\s]*/gi,
       /your\s+answer\s+is[:\s]*/gi,
       /the\s+answer\s+is[:\s]*/gi,
       /here\s+is\s+the\s+answer\s+to\s+your\s+question[:\s.]*/gi,
-      
-      // Bot introductions and greetings
       /hello[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*/gi,
       /hi[,\s]*i'm\s+bharat\s+mitra[,\s.]*/gi,
       /greetings[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*/gi,
       /namaste[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*/gi,
       /i\s+am\s+bharat\s+mitra[,\s.]*/gi,
-      /namaste[,\s]+i\s+am\s+bharat\s+mitra[,\s.]*/gi,
-      
-      // Thank you and acknowledgment phrases
       /thank\s+you\s+for\s+asking[,\s.]*/gi,
       /thank\s+you\s+for\s+your\s+question[,\s.]*/gi,
-      /thanks\s+for\s+asking[,\s.]*/gi,
       /that's\s+a\s+great\s+question[,\s.]*/gi,
-      
-      // Markdown formatting
-      /\*\*[^*]*\*\*/g, // Bold text
-      /\*[^*]*\*/g,     // Italic text
-      /#{1,6}\s/g,      // Headers
-      /```[\s\S]*?```/g, // Code blocks
-      /`[^`]*`/g,       // Inline code
-      /\[[^\]]*\]\([^)]*\)/g, // Links
-      
-      // Common filler phrases
       /let\s+me\s+help\s+you[,\s.]*/gi,
       /sure[,\s]*here\s+is[,\s.]*/gi,
       /of\s+course[,\s.]*/gi,
       /absolutely[,\s.]*/gi,
       /certainly[,\s.]*/gi,
       
-      // Hindi equivalents
       /धन्यवाद\s+पूछने\s+के\s+लिए[,\s.]*/gi,
       /आपका\s+स्वागत\s+है[,\s.]*/gi,
       /यहाँ\s+आपके\s+सवाल\s+का\s+जवाब\s+है[:\s.]*/gi,
       /आपके\s+प्रश्न\s+का\s+उत्तर\s+यहाँ\s+है[:\s.]*/gi,
+      /नमस्ते[,\s]*मैं\s+भारत\s+मित्र\s+हूँ[,\s.]*/gi,
+      /मैं\s+भारत\s+मित्र\s+हूँ[,\s.]*/gi,
+      
+      /\*\*[^*]*\*\*/g,
+      /\*[^*]*\*/g,
+      /#{1,6}\s/g,
+      /```[\s\S]*?```/g,
+      /`[^`]*`/g,
+      /\[[^\]]*\]\([^)]*\)/g,
     ];
 
     let cleanedText = text;
     
-    // Apply all cleaning patterns
     phrasesToRemove.forEach(pattern => {
       cleanedText = cleanedText.replace(pattern, '');
     });
 
-    // Additional cleaning
     cleanedText = cleanedText
-      .replace(/\s+/g, ' ')  // Multiple spaces to single space
-      .replace(/^\s*[,.\-:;।]\s*/, '') // Remove leading punctuation (including Hindi danda)
-      .replace(/\s*[,.\-:;।]\s*$/, '') // Remove trailing punctuation
-      .replace(/^[.\s]+/, '') // Remove leading dots and spaces
+      .replace(/\s+/g, ' ')
+      .replace(/^\s*[,.\-:;।]\s*/, '')
+      .replace(/\s*[,.\-:;।]\s*$/, '')
+      .replace(/^[.\s]+/, '')
       .trim();
 
     return cleanedText;
@@ -138,8 +189,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     isProcessingRef.current = false;
   }, []);
 
-  const togglePlayPause = useCallback((text: string, id: string, lang: 'en' | 'hi') => {
-    // Prevent multiple simultaneous calls
+  const togglePlayPause = useCallback((text: string, id: string, contextLang: 'en' | 'hi') => {
     if (isProcessingRef.current) {
       console.log('Already processing, ignoring call');
       return;
@@ -150,7 +200,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const isThisMessageActive = id === activeUtteranceId;
 
     try {
-      // If currently speaking this message, toggle pause/resume
       if (synth.speaking && isThisMessageActive && utteranceRef.current) {
         if (synth.paused) {
           synth.resume();
@@ -163,12 +212,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         return;
       }
 
-      // Stop any current speech before starting new one
       if (synth.speaking || synth.pending) {
         synth.cancel();
       }
 
-      // Clean the text thoroughly
       const cleanedText = cleanTextForTTS(text);
       
       if (!cleanedText.trim()) {
@@ -177,26 +224,29 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('Speaking cleaned text:', cleanedText.substring(0, 100) + '...');
+      const detectedLang = detectLanguage(cleanedText);
+      
+      const voiceLang = contextLang === 'hi' ? 'hi' : detectedLang;
 
-      // Create new utterance
+      console.log(`Speaking in ${voiceLang} (context: ${contextLang}, detected: ${detectedLang}):`, cleanedText.substring(0, 100) + '...');
+
       const utterance = new SpeechSynthesisUtterance(cleanedText);
       utteranceRef.current = utterance;
 
-      // Set voice based on language
-      const voice = lang === 'hi' ? hindiVoice : englishVoice;
+      const voice = getIndianMaleVoice(voiceLang);
       if (voice) {
         utterance.voice = voice;
         utterance.lang = voice.lang;
+        console.log(`Selected voice: ${voice.name} (${voice.lang})`);
       } else {
-        utterance.lang = lang === 'hi' ? 'hi-IN' : 'en-IN';
+        utterance.lang = voiceLang === 'hi' ? 'hi-IN' : 'en-IN';
+        console.log(`No specific voice found, using lang: ${utterance.lang}`);
       }
       
-      utterance.rate = 0.9;
+      utterance.rate = 0.85; 
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
 
-      // Set up event handlers
       utterance.onstart = () => {
         console.log('Speech started for:', id);
         setIsSpeaking(true);
@@ -233,7 +283,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         isProcessingRef.current = false;
       };
       
-      // Small delay to ensure clean state before speaking
       setTimeout(() => {
         if (utteranceRef.current === utterance && !synth.speaking) {
           synth.speak(utterance);
@@ -249,9 +298,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       setIsPaused(false);
       setActiveUtteranceId(null);
     }
-  }, [activeUtteranceId, hindiVoice, englishVoice, cleanTextForTTS]);
+  }, [activeUtteranceId, getIndianMaleVoice, cleanTextForTTS, detectLanguage]);
   
-  // Stop speech when language changes
   useEffect(() => {
     stopSpeech();
   }, [language, stopSpeech]);
