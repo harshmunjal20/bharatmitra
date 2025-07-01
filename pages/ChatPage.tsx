@@ -8,7 +8,7 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { UserContext } from '../contexts/UserContext';
 
 const ChatPage: React.FC = () => {
-  const { addTokens, language, togglePlayPause } = useContext(UserContext);
+  const { addTokens, language, togglePlayPause, autoPlayEnabled } = useContext(UserContext);
 
   const getInitialMessage = (lang: 'en' | 'hi') => ({
     id: new Date().toISOString() + Math.random(),
@@ -28,7 +28,7 @@ const ChatPage: React.FC = () => {
     setInput(transcript);
   }, []);
 
-  const { transcript, isListening, startListening, stopListening, error: recognitionError } = useSpeechRecognition(language, handleTranscriptComplete);
+  const { transcript, isListening, toggleVoiceInput, disableVoiceInput, isEnabled, error: recognitionError } = useSpeechRecognition(language, handleTranscriptComplete);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -93,6 +93,8 @@ const ChatPage: React.FC = () => {
   const handleSendMessage = useCallback(async () => {
     if (input.trim() === '' || isLoading) return;
 
+    disableVoiceInput();
+
     const userMessage: ChatMessageType = {
       id: new Date().toISOString() + Math.random(),
       sender: MessageSender.USER,
@@ -123,9 +125,11 @@ const ChatPage: React.FC = () => {
         tokensAddedRef.current = true;
       }
       
-      setTimeout(() => {
-        togglePlayPause(cleanedResponse, aiMessage.id, language);
-      }, 100);
+      if (autoPlayEnabled) {
+        setTimeout(() => {
+          togglePlayPause(cleanedResponse, aiMessage.id, language);
+        }, 100);
+      }
       
     } catch (error) {
       console.error('Error fetching AI response:', error);
@@ -145,15 +149,10 @@ const ChatPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, addTokens, togglePlayPause, language]);
+  }, [input, isLoading, addTokens, togglePlayPause, language, autoPlayEnabled, disableVoiceInput]);
 
   const handleMicClick = () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      setInput('');
-      startListening();
-    }
+    toggleVoiceInput();
   };
 
   return (
@@ -192,9 +191,11 @@ const ChatPage: React.FC = () => {
             <button
               onClick={handleMicClick}
               className={`flex-shrink-0 p-3 rounded-full transition-colors duration-200 ${
-                isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-bharat-blue-100 text-bharat-blue-700 hover:bg-bharat-blue-200'
+                isEnabled ? 
+                  (isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-green-500 text-white') 
+                  : 'bg-bharat-blue-100 text-bharat-blue-700 hover:bg-bharat-blue-200'
               }`}
-              aria-label={isListening ? 'Stop recording' : 'Start recording'}
+              aria-label={isEnabled ? (isListening ? 'Voice input active' : 'Voice input enabled') : 'Enable voice input'}
             >
               <MicIcon className="h-6 w-6" />
             </button>
