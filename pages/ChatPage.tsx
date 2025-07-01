@@ -23,8 +23,8 @@ const ChatPage: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-const { transcript, isListening, startListening, stopListening, error: recognitionError } = useSpeechRecognition(language, handleTranscriptComplete);
-const chatEndRef = useRef<HTMLDivElement>(null);
+  const { transcript, isListening, startListening, stopListening, error: recognitionError } = useSpeechRecognition(language);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMessages([getInitialMessage(language)]);
@@ -37,17 +37,6 @@ const chatEndRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const handleTranscriptComplete = useCallback((finalTranscript: string) => {
-  if (finalTranscript.trim()) {
-    setInput(finalTranscript);
-    setTimeout(() => {
-      if (finalTranscript.trim()) {
-        handleSendMessageWithText(finalTranscript);
-      }
-    }, 500);
-  }
-}, []);
 
   const handleSendMessage = useCallback(async () => {
     if (input.trim() === '' || isLoading) return;
@@ -99,58 +88,9 @@ const chatEndRef = useRef<HTMLDivElement>(null);
     }
   }, [input, isLoading, addTokens, togglePlayPause, language]);
 
-  const handleSendMessageWithText = useCallback(async (messageText: string) => {
-  if (messageText.trim() === '' || isLoading) return;
-
-  const userMessage: ChatMessageType = {
-    id: new Date().toISOString() + Math.random(),
-    sender: MessageSender.USER,
-    text: messageText.trim(),
-    timestamp: new Date().toISOString(),
-  };
-  setMessages(prev => [...prev, userMessage]);
-  setInput('');
-  setIsLoading(true);
-
-  try {
-    const aiResponseText = await getSchemeAdvice(messageText.trim(), language);
-
-    const aiMessage: ChatMessageType = {
-      id: new Date().toISOString() + Math.random(),
-      sender: MessageSender.AI,
-      text: aiResponseText, 
-      timestamp: new Date().toISOString(),
-    };
-    
-    setMessages(prev => [...prev, aiMessage]);
-  } catch (error) {
-    console.error('Error fetching AI response:', error);
-    const errorMessageText = language === 'hi' 
-      ? 'माफ़ करें, कुछ त्रुटि हुई है। कृपया फिर से कोशिश करें।'
-      : 'Sorry, I encountered an error. Please try again.';
-    
-    const errorMessage: ChatMessageType = {
-      id: new Date().toISOString() + Math.random(),
-      sender: MessageSender.AI,
-      text: errorMessageText,
-      timestamp: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, errorMessage]);
-  } finally {
-    setIsLoading(false);
-  }
-}, [isLoading, language]);
-
   const handleMicClick = () => {
-  if (isListening) {
-    stopListening();
-  } else {
-    if (!isLoading) {
-      setInput(''); 
-      startListening();
-    }
-  }
-};
+    isListening ? stopListening() : startListening();
+  };
 
   return (
     <div className="min-h-screen px-4 py-8 bg-fixed bg-[url('https://www.transparenttextures.com/patterns/flowers.png')] bg-red-50 bg-blend-overlay bg-opacity-90">
