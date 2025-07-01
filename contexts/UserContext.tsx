@@ -47,59 +47,45 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const isProcessingRef = useRef(false);
 
   const getIndianMaleVoice = useCallback((lang: 'en' | 'hi') => {
-    const availableVoices = voices.filter(voice => {
-      const name = voice.name.toLowerCase();
-      const voiceLang = voice.lang.toLowerCase();
-      
-      const isIndianMale = (
-        name.includes('male') || 
-        name.includes('man') || 
-        (!name.includes('female') && !name.includes('woman'))
-      );
-      
-      if (lang === 'hi') {
-        return (
-          isIndianMale && (
-            voiceLang.startsWith('hi') || 
-            voiceLang === 'en-in' ||
-            name.includes('indian')
-          )
-        );
-      } else {
-        return (
-          isIndianMale && (
-            voiceLang === 'en-in' || 
-            voiceLang.startsWith('en-') ||
-            name.includes('indian')
-          )
-        );
-      }
-    });
-
-    if (availableVoices.length === 0) {
-      const maleVoices = voices.filter(voice => {
-        const name = voice.name.toLowerCase();
-        return (
-          !name.includes('female') && 
-          !name.includes('woman') &&
-          (lang === 'hi' ? voice.lang.startsWith('hi') || voice.lang.startsWith('en-') : voice.lang.startsWith('en-'))
-        );
-      });
-      return maleVoices[0] || null;
+  const availableVoices = voices.filter(voice => {
+    const name = voice.name.toLowerCase();
+    const voiceLang = voice.lang.toLowerCase();
+    
+    const isIndianVoice = (
+      voiceLang.includes('en-in') || 
+      voiceLang.includes('hi-in') ||
+      name.includes('indian') ||
+      name.includes('ravi') ||
+      name.includes('aditi') ||
+      name.includes('google hindi') ||
+      name.includes('microsoft')
+    );
+    
+    const isMaleVoice = (
+      !name.includes('female') && 
+      !name.includes('woman') &&
+      (name.includes('male') || name.includes('man') || name.includes('ravi'))
+    );
+    
+    if (lang === 'hi') {
+      return isIndianVoice && (voiceLang.startsWith('hi') || voiceLang.includes('en-in'));
+    } else {
+      return isIndianVoice && isMaleVoice;
     }
+  });
 
-    const preferredVoice = availableVoices.find(voice => {
-      const name = voice.name.toLowerCase();
-      return (
-        name.includes('google') || 
-        name.includes('microsoft') || 
-        name.includes('premium') ||
-        name.includes('neural')
-      );
-    });
+  const preferredVoice = availableVoices.find(voice => {
+    const name = voice.name.toLowerCase();
+    return (
+      name.includes('ravi') ||
+      name.includes('google') ||
+      name.includes('microsoft') ||
+      name.includes('neural')
+    );
+  });
 
-    return preferredVoice || availableVoices[0] || null;
-  }, [voices]);
+  return preferredVoice || availableVoices[0] || voices.find(v => v.lang.startsWith('en-')) || voices[0];
+}, [voices]);
 
   useEffect(() => {
     const loadVoices = () => {
@@ -118,12 +104,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   }, []);
 
   const detectLanguage = useCallback((text: string): 'en' | 'hi' => {
-    const hindiPattern = /[\u0900-\u097F]/;
-    const hindiCharCount = (text.match(/[\u0900-\u097F]/g) || []).length;
-    const totalChars = text.replace(/\s/g, '').length;
-    
-    return hindiCharCount / totalChars > 0.2 ? 'hi' : 'en';
-  }, []);
+  const hindiPattern = /[\u0900-\u097F]/;
+  const hindiCharCount = (text.match(/[\u0900-\u097F]/g) || []).length;
+  const totalChars = text.replace(/\s/g, '').length;
+  
+  return hindiCharCount / totalChars > 0.1 ? 'hi' : 'en';
+}, []);
 
   const cleanTextForTTS = useCallback((text: string): string => {
     const phrasesToRemove = [
