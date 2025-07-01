@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { LEADERBOARD_DATA } from '../constants';
 import LeaderboardItem from '../components/LeaderboardItem';

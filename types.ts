@@ -17,6 +17,8 @@ export interface Scheme {
   description: string;
   eligibility: string;
   link: string;
+  category: string;     // ✅ e.g., 'Student', 'Farmer', 'Women'
+  tags?: string[];      // ✅ e.g., ['urgent', 'women']
 }
 
 export interface LeaderboardUser {
