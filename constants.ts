@@ -349,26 +349,33 @@ export const LEADERBOARD_DATA: LeaderboardUser[] = [
   { rank: 8, name: 'Anjali Das', location: 'West Bengal', tokens: 150, avatarUrl: 'https://i.pravatar.cc/150?img=14' },
 ];
 
-export const REDEEM_PERKS: RedeemPerk[] = [
-  {
-    id: 'resume-review',
-    name: 'AI Resume Review',
-    description: 'Get an expert-level review of your resume, highlighting strengths and areas for improvement.',
-    price: 50,
-    icon: ScholarshipIcon,
-  },
-  {
-    id: 'study-pdf',
-    name: 'Exclusive Study Materials PDF',
-    description: 'Download a PDF with curated study notes for competitive exams.',
-    price: 75,
-    icon: StoreIcon,
-  },
-  {
-    id: 'mock-interview',
-    name: 'Mock Interview Session',
-    description: 'A 30-minute one-on-one mock interview session with an AI career coach.',
-    price: 150,
-    icon: ScholarshipIcon,
-  },
+// constants.ts
+export type Perk = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  price: number;
+  category: 'Premium' | 'Mentorship' | 'Exam' | 'Daily' | 'Mystery';
+};
+
+export const REDEEM_PERKS: Perk[] = [
+  // Premium (2)
+  { id:'premium-1', title:'Premium Scheme Access', description:'Unlock detailed guides and eligibility calculators.', icon:'🏆', price:60, category:'Premium' },
+  { id:'premium-2', title:'Exclusive Webinar Access', description:'Attend govt strategy sessions.', icon:'🎤', price:50, category:'Premium' },
+  // Mentorship (3)
+  { id:'mentorship-1', title:'1-on-1 Mentor Call', description:'Talk to a scheme advisor.', icon:'📞', price:40, category:'Mentorship' },
+  { id:'mentorship-2', title:'Resume Review Session', description:'Get your resume reviewed.', icon:'📝', price:30, category:'Mentorship' },
+  { id:'mentorship-3', title:'Mock Interview (Govt Jobs)', description:'Simulated interview session.', icon:'🎯', price:35, category:'Mentorship' },
+  // Exam (3)
+  { id:'exam-1', title:'Exam Prep Kit', description:'Practice material for exams.', icon:'📚', price:25, category:'Exam' },
+  { id:'exam-2', title:'Current Affairs Digest', description:'Monthly exam-focused PDF.', icon:'📰', price:15, category:'Exam' },
+  { id:'exam-3', title:'Solved PYQ Papers', description:'Papers with solutions.', icon:'📄', price:20, category:'Exam' },
+  // Daily (3)
+  { id:'daily-1', title:'Daily Scheme Tip', description:'Daily scheme notifications.', icon:'📅', price:5, category:'Daily' },
+  { id:'daily-2', title:'Token Booster – Ad Watch', description:'Earn 10 tokens by watching a video.', icon:'🎥', price:0, category:'Daily' },
+  { id:'bonus-2', title:'Badge of Supporter', description:'Earn a profile badge.', icon:'🏅', price:5, category:'Daily' },
+  // Mystery (2)
+  { id:'mystery-1', title:'🎁 Mystery Box', description:'Get a surprise reward!', icon:'🎁', price:10, category:'Mystery' },
+  { id:'mystery-2', title:'Secret Scheme Reveal', description:'Unlock hidden schemes.', icon:'🔍', price:15, category:'Mystery' },
 ];

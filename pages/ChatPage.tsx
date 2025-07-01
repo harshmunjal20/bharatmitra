@@ -106,7 +106,7 @@ const ChatPage: React.FC = () => {
     } catch (error) {
       const fallback = language === 'hi'
         ? 'माफ़ करें, कुछ त्रुटि हुई है। कृपया फिर से कोशिश करें।'
-        : 'Sorry, I encountered an error. Please try again.';
+        : 'Sorry, I encountered an error , Please try again.';
       setMessages(prev => [...prev, {
         id: new Date().toISOString() + Math.random(),
         sender: MessageSender.AI,
