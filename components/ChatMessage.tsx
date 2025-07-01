@@ -43,14 +43,25 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     togglePlayPause, 
     isSpeaking, 
     isPaused, 
-    activeUtteranceId
+    activeUtteranceId 
   } = useContext(UserContext);
 
   const isThisMessageActive = activeUtteranceId === message.id;
-  const isMessagePlaying = isThisMessageActive && isSpeaking && !isPaused;
   
+  const detectLanguage = (text: string): 'en' | 'hi' => {
+    const hindiPattern = /[\u0900-\u097F]/;
+    const hindiCharCount = (text.match(/[\u0900-\u097F]/g) || []).length;
+    const totalChars = text.replace(/\s/g, '').length;
+    
+    return hindiCharCount / totalChars > 0.2 ? 'hi' : 'en';
+  };
+
   const handleSpeakClick = () => {
-    togglePlayPause(message.text, message.id, language);
+    const messageLanguage = detectLanguage(message.text);
+    
+    const voiceLanguage = isAI ? messageLanguage : language;
+    
+    togglePlayPause(message.text, message.id, voiceLanguage);
   };
 
   return (
@@ -63,10 +74,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
         {isAI && (
            <button 
               onClick={handleSpeakClick} 
-              className="absolute -bottom-3 -right-3 p-1 bg-white rounded-full shadow-md text-gray-500 hover:text-bharat-blue-600 hover:bg-gray-50 transition"
-              aria-label={isMessagePlaying ? "Pause message" : "Play message"}
+              className="absolute -bottom-3 -right-3 p-1 bg-white rounded-full shadow-md text-gray-500 hover:text-bharat-blue-600 hover:bg-gray-50 transition-all duration-200 hover:scale-110"
+              aria-label="Speak this message"
+              title={isThisMessageActive && isSpeaking && !isPaused ? "Pause speech" : "Play speech"}
             >
-              {isMessagePlaying
+              {isThisMessageActive && isSpeaking && !isPaused 
                 ? <PauseIcon className="w-4 h-4 text-bharat-blue-700" /> 
                 : <PlayIcon className="w-4 h-4" />
               }
