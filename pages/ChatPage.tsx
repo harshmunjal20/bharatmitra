@@ -14,7 +14,7 @@ const ChatPage: React.FC = () => {
     id: new Date().toISOString() + Math.random(),
     sender: MessageSender.AI,
     text: lang === 'hi'
-      ? 'नमस्ते! मैं भारत मित्र हूँ। आज मैं आपकी मदद कैसे कर सकता हूँ? मुझसे किसी भी सरकारी योजना के बारे में पूछें।'
+      ? 'नमस्ते! मैं भारत मित्र हूँ। आज मैं आपकी मदद कैसे कर सकती हूँ? मुझसे किसी भी सरकारी योजना के बारे में पूछें।'
       : 'Namaste! I am Bharat Mitra. How can I help you today? Ask me about any government scheme.',
     timestamp: new Date().toISOString(),
   });
@@ -22,8 +22,14 @@ const ChatPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessageType[]>([getInitialMessage(language)]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const tokensAddedRef = useRef(false);
 
-  const { transcript, isListening, startListening, stopListening, error: recognitionError } = useSpeechRecognition(language);
+  const handleTranscriptComplete = useCallback((transcript: string) => {
+    setInput(transcript);
+  }, []);
+
+  const { transcript, isListening, startListening, stopListening, error: recognitionError } = useSpeechRecognition(language, handleTranscriptComplete);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,12 +37,58 @@ const ChatPage: React.FC = () => {
   }, [language]);
 
   useEffect(() => {
-    setInput(transcript);
-  }, [transcript]);
+    if (transcript && !isListening) {
+      setInput(transcript);
+    }
+  }, [transcript, isListening]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const cleanAIResponse = (text: string): string => {
+    const phrasesToRemove = [
+      /^.*?here\s+is\s+(?:the\s+)?answer\s+to\s+your\s+question[:\s.]*/gi,
+      /^.*?here's\s+(?:the\s+)?answer[:\s.]*/gi,
+      /^.*?your\s+answer\s+is[:\s.]*/gi,
+      /^.*?the\s+answer\s+is[:\s.]*/gi,
+      /^hello[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*(?:here\s+is[,\s.]*)?/gi,
+      /^hi[,\s]*i'm\s+bharat\s+mitra[,\s.]*(?:here\s+is[,\s.]*)?/gi,
+      /^greetings[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*(?:here\s+is[,\s.]*)?/gi,
+      /^namaste[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*(?:here\s+is[,\s.]*)?/gi,
+      /^i\s+am\s+bharat\s+mitra[,\s.]*(?:here\s+is[,\s.]*)?/gi,
+      /^thank\s+you\s+for\s+asking[,\s.]*/gi,
+      /^thank\s+you\s+for\s+your\s+question[,\s.]*/gi,
+      /^that's\s+a\s+great\s+question[,\s.]*/gi,
+      /^let\s+me\s+help\s+you[,\s.]*/gi,
+      /^sure[,\s]*here\s+is[,\s.]*/gi,
+      /^of\s+course[,\s.]*/gi,
+      /^absolutely[,\s.]*/gi,
+      /^certainly[,\s.]*/gi,
+      
+      /^.*?यहाँ\s+आपके\s+सवाल\s+का\s+जवाब\s+है[:\s.]*/gi,
+      /^.*?आपके\s+प्रश्न\s+का\s+उत्तर\s+यहाँ\s+है[:\s.]*/gi,
+      /^नमस्ते[,\s]*मैं\s+भारत\s+मित्र\s+हूँ[,\s.]*(?:यहाँ[,\s.]*)?/gi,
+      /^मैं\s+भारत\s+मित्र\s+हूँ[,\s.]*(?:यहाँ[,\s.]*)?/gi,
+      /^धन्यवाद\s+पूछने\s+के\s+लिए[,\s.]*/gi,
+      /^आपका\s+स्वागत\s+है[,\s.]*/gi,
+    ];
+
+    let cleanedText = text;
+    
+    phrasesToRemove.forEach(pattern => {
+      cleanedText = cleanedText.replace(pattern, '');
+    });
+
+    cleanedText = cleanedText
+      .replace(/\s+/g, ' ')
+      .replace(/^\s*[,.\-:;।]\s*/, '')
+      .replace(/\s*[,.\-:;।]\s*$/, '')
+      .replace(/^[.\s]+/, '')
+      .trim();
+
+    return cleanedText;
+  };
 
   const handleSendMessage = useCallback(async () => {
     if (input.trim() === '' || isLoading) return;
@@ -50,24 +102,31 @@ const ChatPage: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    tokensAddedRef.current = false;
 
     try {
       const aiResponseText = await getSchemeAdvice(input, language);
-
-      const friendlyGreeting = language === 'hi'
-        ? `नमस्ते, मैं भारत मित्र हूँ। आपके सवाल का जवाब यहाँ है...\n\n`
-        : `Namaste, I am Bharat Mitra. Here is the answer to your question...\n\n`;
+      
+      const cleanedResponse = cleanAIResponse(aiResponseText);
 
       const aiMessage: ChatMessageType = {
         id: new Date().toISOString() + Math.random(),
         sender: MessageSender.AI,
-        text: aiResponseText,
+        text: cleanedResponse,
         timestamp: new Date().toISOString(),
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      togglePlayPause(friendlyGreeting + aiResponseText, aiMessage.id, language);
-      addTokens(10);
+      
+      if (!tokensAddedRef.current) {
+        addTokens(10);
+        tokensAddedRef.current = true;
+      }
+      
+      setTimeout(() => {
+        togglePlayPause(cleanedResponse, aiMessage.id, language);
+      }, 100);
+      
     } catch (error) {
       console.error('Error fetching AI response:', error);
 
@@ -89,7 +148,12 @@ const ChatPage: React.FC = () => {
   }, [input, isLoading, addTokens, togglePlayPause, language]);
 
   const handleMicClick = () => {
-    isListening ? stopListening() : startListening();
+    if (isListening) {
+      stopListening();
+    } else {
+      setInput('');
+      startListening();
+    }
   };
 
   return (
