@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { AshokaChakraIcon } from './icons/AshokaChakraIcon';
 import { TokenIcon } from './icons/TokenIcon';
@@ -6,11 +6,28 @@ import { UserContext } from '../contexts/UserContext';
 
 const Header: React.FC = () => {
   const { tokenBalance, language, setLanguage } = useContext(UserContext);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const linkStyle =
     'text-gray-600 hover:text-bharat-blue-700 px-3 py-2 rounded-lg font-medium text-sm transition-all duration-200';
   const activeLinkStyle =
     'text-bharat-blue-800 bg-bharat-blue-100 shadow-inner';
+
+  const mobileMenuItems = [
+    ['/chat', 'Chat'],
+    ['/voice-chat', 'Voice Chat'],
+    ['/scholarships', 'Scholarships'],
+    ['/about', 'About'],
+    ['/settings', 'Settings'],
+  ];
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <header className="bg-white/80 backdrop-blur-sm shadow-md sticky top-0 z-50">
@@ -24,8 +41,7 @@ const Header: React.FC = () => {
             </h1>
           </div>
 
-          {/* Navigation */}
-
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-2">
             {[
               ['/', 'Home'],
@@ -48,7 +64,7 @@ const Header: React.FC = () => {
             ))}
           </nav>
 
-          {/* Language Toggle + Token Balance */}
+          {/* Right Side: Language Toggle + Token Balance + Mobile Menu Button */}
           <div className="flex items-center gap-4">
             {/* Language Toggle */}
             <div className="flex items-center bg-gray-200 rounded-full px-1 py-1 transition shadow-sm">
@@ -77,8 +93,57 @@ const Header: React.FC = () => {
                 {language === 'hi' ? 'टोकन' : 'Tokens'}
               </span>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={toggleMobileMenu}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              aria-label="Toggle mobile menu"
+            >
+              <div className="w-6 h-6 flex flex-col justify-center items-center">
+                <div
+                  className={`w-5 h-0.5 bg-gray-600 transition-all duration-300 ${
+                    isMobileMenuOpen ? 'rotate-45 translate-y-1.5' : 'mb-1'
+                  }`}
+                />
+                <div
+                  className={`w-5 h-0.5 bg-gray-600 transition-all duration-300 ${
+                    isMobileMenuOpen ? 'opacity-0' : 'mb-1'
+                  }`}
+                />
+                <div
+                  className={`w-5 h-0.5 bg-gray-600 transition-all duration-300 ${
+                    isMobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''
+                  }`}
+                />
+              </div>
+            </button>
           </div>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-200 shadow-lg">
+            <nav className="px-4 py-4 space-y-2">
+              {mobileMenuItems.map(([to, label]) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={closeMobileMenu}
+                  className={({ isActive }) =>
+                    `block px-4 py-3 rounded-lg font-medium text-base transition-all duration-200 ${
+                      isActive
+                        ? 'text-bharat-blue-800 bg-bharat-blue-100 shadow-inner'
+                        : 'text-gray-600 hover:text-bharat-blue-700 hover:bg-gray-50'
+                    }`
+                  }
+                >
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );
