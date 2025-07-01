@@ -37,28 +37,15 @@ export const RECOMMENDED_SCHEMES: Scheme[] = [
   // Add more schemes similarly
 ];
 
-export const LEADERBOARD_DATA = [
-  {
-    rank: 1,
-    previousRank: 2,
-    name: 'Ramesh Kumar',
-    location: 'Punjab',
-    tokens: 250,
-    image: 'https://i.pravatar.cc/150?img=1',
-    bio: 'Educator from Punjab',
-    tokenHistory: [180, 190, 210, 230, 250]
-  },
-  {
-    rank: 2,
-    previousRank: 1,
-    name: 'Sunita Devi',
-    location: 'Uttar Pradesh',
-    tokens: 235,
-    image: 'https://i.pravatar.cc/150?img=2',
-    bio: 'Student Advocate',
-    tokenHistory: [200, 210, 225, 240, 235]
-  },
-  // ... add others similarly
+export const LEADERBOARD_DATA: LeaderboardUser[] = [
+  { rank: 1, name: 'Ramesh Kumar', location: 'Punjab', tokens: 250, avatarUrl: 'https://i.pravatar.cc/150?img=1' },
+  { rank: 2, name: 'Sunita Devi', location: 'Uttar Pradesh', tokens: 235, avatarUrl: 'https://i.pravatar.cc/150?img=5' },
+  { rank: 3, name: 'Arjun Singh', location: 'Rajasthan', tokens: 210, avatarUrl: 'https://i.pravatar.cc/150?img=3' },
+  { rank: 4, name: 'Priya Sharma', location: 'Maharashtra', tokens: 198, avatarUrl: 'https://i.pravatar.cc/150?img=8' },
+  { rank: 5, name: 'Amit Patel', location: 'Gujarat', tokens: 180, avatarUrl: 'https://i.pravatar.cc/150?img=7' },
+  { rank: 6, name: 'Kavita Reddy', location: 'Andhra Pradesh', tokens: 172, avatarUrl: 'https://i.pravatar.cc/150?img=11' },
+  { rank: 7, name: 'Sandeep Tiwari', location: 'Madhya Pradesh', tokens: 165, avatarUrl: 'https://i.pravatar.cc/150?img=12' },
+  { rank: 8, name: 'Anjali Das', location: 'West Bengal', tokens: 150, avatarUrl: 'https://i.pravatar.cc/150?img=14' },
 ];
 
 
