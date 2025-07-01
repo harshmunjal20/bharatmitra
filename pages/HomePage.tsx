@@ -209,17 +209,17 @@ const HomePage: React.FC = () => {
             },
             {
     icon: "📚",
-    question: "What kind of schemes can I ask about?",
+    title: "What kind of schemes can I ask about?",
     answer: "🎯 You can ask about education, farming, health, housing, employment and more government schemes.",
   },
   {
     icon: "🖥️",
-    question: "Do I need to install any app?",
+    title: "Do I need to install any app?",
     answer: "🌐 No installation needed — just open the website in your browser and start chatting!",
   },
   {
     icon: "🔒",
-    question: "Is my data safe?",
+    title: "Is my data safe?",
     answer: "🛡️ Absolutely. We don’t collect any personal data or store your queries.",
   },
           ].map((faq, idx) => (
