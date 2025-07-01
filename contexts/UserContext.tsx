@@ -44,7 +44,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [activeUtteranceId, setActiveUtteranceId] = useState<string | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const isProcessingRef = useRef(false); 
+  const isProcessingRef = useRef(false);
 
   const englishVoice = voices.find(v => v.lang === 'en-IN' && v.name.includes('Female')) || 
                      voices.find(v => v.name === 'Google UK English Female') || 
@@ -64,18 +64,27 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const cleanTextForTTS = useCallback((text: string): string => {
     const phrasesToRemove = [
-      /here is your answer[:\s]*/gi,
-      /here's your answer[:\s]*/gi,
-      /hello[,\s]*i am bharat mitra[,\s]*/gi,
-      /hi[,\s]*i'm bharat mitra[,\s]*/gi,
-      /greetings[,\s]*i am bharat mitra[,\s]*/gi,
-      /namaste[,\s]*i am bharat mitra[,\s]*/gi,
+      /here\s+is\s+your\s+answer[:\s]*/gi,
+      /here's\s+your\s+answer[:\s]*/gi,
+      /your\s+answer\s+is[:\s]*/gi,
+      /the\s+answer\s+is[:\s]*/gi,
+      
+      /hello[,\s]*i\s+am\s+bharat\s+mitra[,\s]*/gi,
+      /hi[,\s]*i'm\s+bharat\s+mitra[,\s]*/gi,
+      /greetings[,\s]*i\s+am\s+bharat\s+mitra[,\s]*/gi,
+      /namaste[,\s]*i\s+am\s+bharat\s+mitra[,\s]*/gi,
+      /i\s+am\s+bharat\s+mitra[,\s]*/gi,
+      
       /\*\*[^*]*\*\*/g, 
-      /\*[^*]*\*/g, 
-      /#{1,6}\s/g, 
+      /\*[^*]*\*/g,     
+      /#{1,6}\s/g,      
       /```[\s\S]*?```/g, 
-      /`[^`]*`/g, 
+      /`[^`]*`/g,       
       /\[[^\]]*\]\([^)]*\)/g, 
+      
+      /let\s+me\s+help\s+you[,\s]*/gi,
+      /sure[,\s]*here\s+is[,\s]*/gi,
+      /of\s+course[,\s]*/gi,
     ];
 
     let cleanedText = text;
@@ -85,8 +94,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     });
 
     cleanedText = cleanedText
-      .replace(/\s+/g, ' ') 
-      .replace(/^\s*[,.\-:]\s*/, '')
+      .replace(/\s+/g, ' ')  
+      .replace(/^\s*[,.\-:;]\s*/, '')
+      .replace(/\s*[,.\-:;]\s*$/, '') 
       .trim();
 
     return cleanedText;
@@ -94,7 +104,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const stopSpeech = useCallback(() => {
     const synth = window.speechSynthesis;
-    synth.cancel();
+    if (synth.speaking || synth.pending) {
+      synth.cancel();
+    }
     setIsSpeaking(false);
     setIsPaused(false);
     setActiveUtteranceId(null);
@@ -103,14 +115,17 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   }, []);
 
   const togglePlayPause = useCallback((text: string, id: string, lang: 'en' | 'hi') => {
-    if (isProcessingRef.current) return;
+    if (isProcessingRef.current) {
+      console.log('Already processing, ignoring call');
+      return;
+    }
+    
     isProcessingRef.current = true;
-
     const synth = window.speechSynthesis;
     const isThisMessageActive = id === activeUtteranceId;
 
     try {
-      if (synth.speaking && isThisMessageActive) {
+      if (synth.speaking && isThisMessageActive && utteranceRef.current) {
         if (synth.paused) {
           synth.resume();
           setIsPaused(false);
@@ -118,69 +133,89 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           synth.pause();
           setIsPaused(true);
         }
-      } else {
-        synth.cancel();
-        
-        const cleanedText = cleanTextForTTS(text);
-        
-        if (!cleanedText.trim()) {
-          console.warn('No content to speak after cleaning');
-          isProcessingRef.current = false;
-          return;
-        }
-
-        const utterance = new SpeechSynthesisUtterance(cleanedText);
-        utteranceRef.current = utterance;
-
-        const voice = lang === 'hi' ? hindiVoice : englishVoice;
-        if (voice) {
-          utterance.voice = voice;
-          utterance.lang = voice.lang;
-        }
-        utterance.rate = 0.95;
-        utterance.pitch = 1;
-
-        utterance.onstart = () => {
-          setIsSpeaking(true);
-          setIsPaused(false);
-          setActiveUtteranceId(id);
-          isProcessingRef.current = false;
-        };
-        
-        utterance.onpause = () => {
-          setIsPaused(true);
-        };
-        
-        utterance.onresume = () => {
-          setIsPaused(false);
-        };
-        
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          setIsPaused(false);
-          setActiveUtteranceId(null);
-          utteranceRef.current = null;
-          isProcessingRef.current = false;
-        };
-        
-        utterance.onerror = (e) => {
-          console.error("SpeechSynthesis Error", e);
-          setIsSpeaking(false);
-          setIsPaused(false);
-          setActiveUtteranceId(null);
-          utteranceRef.current = null;
-          isProcessingRef.current = false;
-        };
-        
-        setTimeout(() => {
-          if (utteranceRef.current === utterance) {
-            synth.speak(utterance);
-          }
-        }, 50);
+        isProcessingRef.current = false;
+        return;
       }
+
+      if (synth.speaking || synth.pending) {
+        synth.cancel();
+      }
+
+      const cleanedText = cleanTextForTTS(text);
+      
+      if (!cleanedText.trim()) {
+        console.warn('No content to speak after cleaning');
+        isProcessingRef.current = false;
+        return;
+      }
+
+      console.log('Speaking cleaned text:', cleanedText.substring(0, 100) + '...');
+
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
+      utteranceRef.current = utterance;
+
+      const voice = lang === 'hi' ? hindiVoice : englishVoice;
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+      } else {
+        utterance.lang = lang === 'hi' ? 'hi-IN' : 'en-IN';
+      }
+      
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      utterance.onstart = () => {
+        console.log('Speech started for:', id);
+        setIsSpeaking(true);
+        setIsPaused(false);
+        setActiveUtteranceId(id);
+        isProcessingRef.current = false;
+      };
+      
+      utterance.onpause = () => {
+        console.log('Speech paused');
+        setIsPaused(true);
+      };
+      
+      utterance.onresume = () => {
+        console.log('Speech resumed');
+        setIsPaused(false);
+      };
+      
+      utterance.onend = () => {
+        console.log('Speech ended for:', id);
+        setIsSpeaking(false);
+        setIsPaused(false);
+        setActiveUtteranceId(null);
+        utteranceRef.current = null;
+        isProcessingRef.current = false;
+      };
+      
+      utterance.onerror = (e) => {
+        console.error("SpeechSynthesis Error:", e);
+        setIsSpeaking(false);
+        setIsPaused(false);
+        setActiveUtteranceId(null);
+        utteranceRef.current = null;
+        isProcessingRef.current = false;
+      };
+      
+      setTimeout(() => {
+        if (utteranceRef.current === utterance && !synth.speaking) {
+          synth.speak(utterance);
+        } else {
+          isProcessingRef.current = false;
+        }
+      }, 100);
+
     } catch (error) {
       console.error('Error in togglePlayPause:', error);
       isProcessingRef.current = false;
+      setIsSpeaking(false);
+      setIsPaused(false);
+      setActiveUtteranceId(null);
     }
   }, [activeUtteranceId, hindiVoice, englishVoice, cleanTextForTTS]);
   
