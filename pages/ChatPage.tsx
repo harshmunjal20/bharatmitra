@@ -8,7 +8,7 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { UserContext } from '../contexts/UserContext';
 
 const ChatPage: React.FC = () => {
-  const { addTokens, language, togglePlayPause } = useContext(UserContext);
+  const { addTokens, language } = useContext(UserContext);
   
   const getInitialMessage = (lang: 'en' | 'hi') => ({
     id: new Date().toISOString() + Math.random(),
@@ -27,7 +27,6 @@ const ChatPage: React.FC = () => {
   
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Reset chat and set initial message when language changes
   useEffect(() => {
     setMessages([getInitialMessage(language)]);
   }, [language]);
@@ -55,23 +54,23 @@ const ChatPage: React.FC = () => {
 
     try {
       const aiResponseText = await getSchemeAdvice(input, language);
-      
-      const friendlyGreeting = language === 'hi'
-        ? `नमस्ते, मैं भारत मित्र हूँ। आपके सवाल का जवाब यहाँ है...\n\n`
-        : `Namaste, I am Bharat Mitra. Here is the answer to your question...\n\n`;
 
       const aiMessage: ChatMessageType = {
         id: new Date().toISOString() + Math.random(),
         sender: MessageSender.AI,
-        text: aiResponseText, // Store raw response for the chat bubble
+        text: aiResponseText, 
         timestamp: new Date().toISOString(),
       };
+      
       setMessages(prev => [...prev, aiMessage]);
-      togglePlayPause(friendlyGreeting + aiResponseText, aiMessage.id, language);
-      addTokens(10); // Reward 10 tokens for a successful interaction
+      
+
     } catch (error) {
       console.error('Error fetching AI response:', error);
-      const errorMessageText = 'Sorry, I encountered an error. Please try again.';
+      const errorMessageText = language === 'hi' 
+        ? 'माफ़ करें, कुछ त्रुटि हुई है। कृपया फिर से कोशिश करें।'
+        : 'Sorry, I encountered an error. Please try again.';
+      
       const errorMessage: ChatMessageType = {
         id: new Date().toISOString() + Math.random(),
         sender: MessageSender.AI,
@@ -82,7 +81,7 @@ const ChatPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, addTokens, togglePlayPause, language]);
+  }, [input, isLoading, addTokens, language]);
 
   const handleMicClick = () => {
     if (isListening) {
