@@ -1,35 +1,99 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Scheme } from '../types';
+import { RECOMMENDED_SCHEMES } from '../constants';
+import SchemeCard from '../components/SchemeCard';
 
-interface SchemeCardProps {
-  scheme: Scheme;
-}
+const categories = ['All', 'Student', 'Farmer', 'Employment', 'Women'];
+const tags = ['urgent', 'women', 'student'];
 
-const SchemeCard: React.FC<SchemeCardProps> = ({ scheme }) => {
+const FilteredSchemesPage: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [activeTags, setActiveTags] = useState<string[]>([]);
+
+  const toggleTag = (tag: string) => {
+    setActiveTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const filteredSchemes = RECOMMENDED_SCHEMES.filter((scheme: Scheme) => {
+    const matchSearch =
+      scheme.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      scheme.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchCategory =
+      selectedCategory === 'All' ||
+      scheme.category?.toLowerCase() === selectedCategory.toLowerCase();
+
+    const matchTags =
+      activeTags.length === 0 ||
+      activeTags.every((tag) => scheme.tags?.includes(tag));
+
+    return matchSearch && matchCategory && matchTags;
+  });
+
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden transition-transform transform hover:-translate-y-1 hover:shadow-xl border-t-4 border-bharat-blue-600 flex flex-col">
-      <div className="p-6 flex-grow">
-        <h3 className="text-xl font-bold text-bharat-blue-900 mb-2">{scheme.title}</h3>
-        <p className="text-sm text-gray-500 mb-4">{scheme.department}</p>
-        <p className="text-gray-700 mb-4">{scheme.description}</p>
-        <div className="mb-4">
-          <h4 className="font-semibold text-gray-800">Eligibility:</h4>
-          <p className="text-gray-600">{scheme.eligibility}</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-white via-rose-50 to-red-50 px-4 sm:px-8 py-12">
+      {/* Header */}
+      <div className="text-center mb-10">
+        <h1 className="text-4xl font-bold text-red-800 mb-3">Browse Schemes</h1>
+        <p className="text-gray-700 text-sm sm:text-base">
+          Search and filter to find schemes tailored to you.
+        </p>
       </div>
-      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-        <a 
-          href={scheme.link} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="font-bold text-bharat-blue-700 hover:text-bharat-blue-900 transition-colors"
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 mb-8 justify-center">
+        {/* Search Input */}
+        <input
+          type="text"
+          placeholder="Search by title or description"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="px-4 py-2 rounded border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-300 w-full sm:w-64"
+        />
+
+        {/* Category Dropdown */}
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="px-4 py-2 rounded border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-300"
         >
-          Learn More &rarr;
-        </a>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+          
+        </select>
+
+        {/* Tag Checkboxes */}
+        {tags.map((tag) => (
+          <label key={tag} className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={activeTags.includes(tag)}
+              onChange={() => toggleTag(tag)}
+              className="accent-red-600"
+            />
+            <span className="capitalize">{tag}</span>
+          </label>
+        ))}
       </div>
+
+      {/* Results */}
+      {filteredSchemes.length === 0 ? (
+        <p className="text-center text-gray-600">No schemes match your criteria.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {filteredSchemes.map((scheme) => (
+            <SchemeCard key={scheme.id} scheme={scheme} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
-export default SchemeCard;
+export default FilteredSchemesPage;

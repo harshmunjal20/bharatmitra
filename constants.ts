@@ -5,29 +5,36 @@ import { ScholarshipIcon } from './components/icons/ScholarshipIcon';
 
 export const RECOMMENDED_SCHEMES: Scheme[] = [
   {
-    id: 'pm-kisan',
-    title: 'PM-KISAN Scheme',
-    department: 'Ministry of Agriculture & Farmers Welfare',
-    description: 'An income support scheme for all landholding farmer families. They receive ₹6,000 per year in three installments.',
-    eligibility: 'All landholding farmer families.',
-    link: 'https://pmkisan.gov.in/',
+    id: '1',
+    title: 'National Scholarship for Students',
+    department: 'Ministry of Education',
+    description: 'Scholarship for meritorious students across India.',
+    eligibility: 'Students scoring above 80% in Class 12',
+    link: 'https://scholarships.gov.in',
+    category: 'Student',
+    tags: ['student', 'urgent'],
   },
   {
-    id: 'ayushman-bharat',
-    title: 'Ayushman Bharat Pradhan Mantri Jan Arogya Yojana (PM-JAY)',
-    department: 'Ministry of Health and Family Welfare',
-    description: 'The world\'s largest health insurance scheme, providing a cover of ₹5 lakhs per family per year for secondary and tertiary care hospitalization.',
-    eligibility: 'Based on SECC 2011 data for rural and urban areas.',
-    link: 'https://nha.gov.in/PM-JAY',
+    id: '2',
+    title: 'PM Kisan Scheme',
+    department: 'Ministry of Agriculture',
+    description: 'Direct income support for farmers.',
+    eligibility: 'Small and marginal farmers',
+    link: 'https://pmkisan.gov.in',
+    category: 'Farmer',
+    tags: ['farmer'],
   },
   {
-    id: 'nsp',
-    title: 'National Scholarship Portal (NSP)',
-    department: 'Ministry of Electronics and Information Technology',
-    description: 'A one-stop platform for students to apply for various scholarship schemes offered by Union Government, State Governments, and UGC.',
-    eligibility: 'Varies by scholarship. Open to students from primary to post-doctoral level.',
-    link: 'https://scholarships.gov.in/',
+    id: '3',
+    title: 'Mahila Samman Yojana',
+    department: 'Women & Child Development',
+    description: 'Support scheme for women entrepreneurs.',
+    eligibility: 'Women aged 18-40 with a business idea',
+    link: 'https://wcd.nic.in',
+    category: 'Women',
+    tags: ['women'],
   },
+  // Add more schemes similarly
 ];
 
 export const LEADERBOARD_DATA: LeaderboardUser[] = [
@@ -40,6 +47,7 @@ export const LEADERBOARD_DATA: LeaderboardUser[] = [
   { rank: 7, name: 'Sandeep Tiwari', location: 'Madhya Pradesh', tokens: 165, avatarUrl: 'https://i.pravatar.cc/150?img=12' },
   { rank: 8, name: 'Anjali Das', location: 'West Bengal', tokens: 150, avatarUrl: 'https://i.pravatar.cc/150?img=14' },
 ];
+
 
 export const SCHOLARSHIPS_DATA: Scholarship[] = [
   {
