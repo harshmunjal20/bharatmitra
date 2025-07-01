@@ -14,8 +14,6 @@ interface UserContextType {
   isSpeaking: boolean;
   isPaused: boolean;
   activeUtteranceId: string | null;
-  autoPlayEnabled: boolean;
-  setAutoPlayEnabled: (enabled: boolean) => void;
 }
 
 export const UserContext = createContext<UserContextType>({
@@ -30,8 +28,6 @@ export const UserContext = createContext<UserContextType>({
   isSpeaking: false,
   isPaused: false,
   activeUtteranceId: null,
-  autoPlayEnabled: false,
-  setAutoPlayEnabled: () => {},
 });
 
 interface UserProviderProps {
@@ -42,7 +38,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [userId] = useState<string>(generateUserId());
   const [tokenBalance, setTokenBalance] = useState<number>(100);
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
-  const [autoPlayEnabled, setAutoPlayEnabled] = useState<boolean>(false);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -51,21 +46,20 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const isProcessingRef = useRef(false);
 
-  const getFemaleVoice = useCallback((lang: 'en' | 'hi') => {
+  const getIndianMaleVoice = useCallback((lang: 'en' | 'hi') => {
     const availableVoices = voices.filter(voice => {
       const name = voice.name.toLowerCase();
       const voiceLang = voice.lang.toLowerCase();
       
-      const isFemale = (
-        name.includes('female') || 
-        name.includes('woman') || 
-        name.includes('girl') ||
-        (!name.includes('male') && !name.includes('man'))
+      const isIndianMale = (
+        name.includes('male') || 
+        name.includes('man') || 
+        (!name.includes('female') && !name.includes('woman'))
       );
       
       if (lang === 'hi') {
         return (
-          isFemale && (
+          isIndianMale && (
             voiceLang.startsWith('hi') || 
             voiceLang === 'en-in' ||
             name.includes('indian')
@@ -73,7 +67,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         );
       } else {
         return (
-          isFemale && (
+          isIndianMale && (
             voiceLang === 'en-in' || 
             voiceLang.startsWith('en-') ||
             name.includes('indian')
@@ -83,15 +77,15 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     });
 
     if (availableVoices.length === 0) {
-      const femaleVoices = voices.filter(voice => {
+      const maleVoices = voices.filter(voice => {
         const name = voice.name.toLowerCase();
         return (
-          !name.includes('male') && 
-          !name.includes('man') &&
+          !name.includes('female') && 
+          !name.includes('woman') &&
           (lang === 'hi' ? voice.lang.startsWith('hi') || voice.lang.startsWith('en-') : voice.lang.startsWith('en-'))
         );
       });
-      return femaleVoices[0] || null;
+      return maleVoices[0] || null;
     }
 
     const preferredVoice = availableVoices.find(voice => {
@@ -110,6 +104,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   useEffect(() => {
     const loadVoices = () => {
       const loadedVoices = window.speechSynthesis.getVoices();
+      console.log('Available voices:', loadedVoices.map(v => ({ name: v.name, lang: v.lang })));
       setVoices(loadedVoices);
     };
     
@@ -130,6 +125,58 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     return hindiCharCount / totalChars > 0.2 ? 'hi' : 'en';
   }, []);
 
+  const cleanTextForTTS = useCallback((text: string): string => {
+    const phrasesToRemove = [
+      /here\s+is\s+your\s+answer[:\s]*/gi,
+      /here's\s+your\s+answer[:\s]*/gi,
+      /your\s+answer\s+is[:\s]*/gi,
+      /the\s+answer\s+is[:\s]*/gi,
+      /here\s+is\s+the\s+answer\s+to\s+your\s+question[:\s.]*/gi,
+      /hello[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*/gi,
+      /hi[,\s]*i'm\s+bharat\s+mitra[,\s.]*/gi,
+      /greetings[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*/gi,
+      /namaste[,\s]*i\s+am\s+bharat\s+mitra[,\s.]*/gi,
+      /i\s+am\s+bharat\s+mitra[,\s.]*/gi,
+      /thank\s+you\s+for\s+asking[,\s.]*/gi,
+      /thank\s+you\s+for\s+your\s+question[,\s.]*/gi,
+      /that's\s+a\s+great\s+question[,\s.]*/gi,
+      /let\s+me\s+help\s+you[,\s.]*/gi,
+      /sure[,\s]*here\s+is[,\s.]*/gi,
+      /of\s+course[,\s.]*/gi,
+      /absolutely[,\s.]*/gi,
+      /certainly[,\s.]*/gi,
+      
+      /धन्यवाद\s+पूछने\s+के\s+लिए[,\s.]*/gi,
+      /आपका\s+स्वागत\s+है[,\s.]*/gi,
+      /यहाँ\s+आपके\s+सवाल\s+का\s+जवाब\s+है[:\s.]*/gi,
+      /आपके\s+प्रश्न\s+का\s+उत्तर\s+यहाँ\s+है[:\s.]*/gi,
+      /नमस्ते[,\s]*मैं\s+भारत\s+मित्र\s+हूँ[,\s.]*/gi,
+      /मैं\s+भारत\s+मित्र\s+हूँ[,\s.]*/gi,
+      
+      /\*\*[^*]*\*\*/g,
+      /\*[^*]*\*/g,
+      /#{1,6}\s/g,
+      /```[\s\S]*?```/g,
+      /`[^`]*`/g,
+      /\[[^\]]*\]\([^)]*\)/g,
+    ];
+
+    let cleanedText = text;
+    
+    phrasesToRemove.forEach(pattern => {
+      cleanedText = cleanedText.replace(pattern, '');
+    });
+
+    cleanedText = cleanedText
+      .replace(/\s+/g, ' ')
+      .replace(/^\s*[,.\-:;।]\s*/, '')
+      .replace(/\s*[,.\-:;।]\s*$/, '')
+      .replace(/^[.\s]+/, '')
+      .trim();
+
+    return cleanedText;
+  }, []);
+
   const stopSpeech = useCallback(() => {
     const synth = window.speechSynthesis;
     if (synth.speaking || synth.pending) {
@@ -144,6 +191,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const togglePlayPause = useCallback((text: string, id: string, contextLang: 'en' | 'hi') => {
     if (isProcessingRef.current) {
+      console.log('Already processing, ignoring call');
       return;
     }
     
@@ -168,30 +216,39 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         synth.cancel();
       }
 
-      if (!text.trim()) {
+      const cleanedText = cleanTextForTTS(text);
+      
+      if (!cleanedText.trim()) {
+        console.warn('No content to speak after cleaning');
         isProcessingRef.current = false;
         return;
       }
 
-      const detectedLang = detectLanguage(text);
+      const detectedLang = detectLanguage(cleanedText);
+      
       const voiceLang = contextLang === 'hi' ? 'hi' : detectedLang;
 
-      const utterance = new SpeechSynthesisUtterance(text.trim());
+      console.log(`Speaking in ${voiceLang} (context: ${contextLang}, detected: ${detectedLang}):`, cleanedText.substring(0, 100) + '...');
+
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
       utteranceRef.current = utterance;
 
-      const voice = getFemaleVoice(voiceLang);
+      const voice = getIndianMaleVoice(voiceLang);
       if (voice) {
         utterance.voice = voice;
         utterance.lang = voice.lang;
+        console.log(`Selected voice: ${voice.name} (${voice.lang})`);
       } else {
         utterance.lang = voiceLang === 'hi' ? 'hi-IN' : 'en-IN';
+        console.log(`No specific voice found, using lang: ${utterance.lang}`);
       }
       
-      utterance.rate = 0.9; 
-      utterance.pitch = 1.1;
+      utterance.rate = 0.85; 
+      utterance.pitch = 1.0;
       utterance.volume = 1.0;
 
       utterance.onstart = () => {
+        console.log('Speech started for:', id);
         setIsSpeaking(true);
         setIsPaused(false);
         setActiveUtteranceId(id);
@@ -199,14 +256,17 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       };
       
       utterance.onpause = () => {
+        console.log('Speech paused');
         setIsPaused(true);
       };
       
       utterance.onresume = () => {
+        console.log('Speech resumed');
         setIsPaused(false);
       };
       
       utterance.onend = () => {
+        console.log('Speech ended for:', id);
         setIsSpeaking(false);
         setIsPaused(false);
         setActiveUtteranceId(null);
@@ -238,7 +298,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       setIsPaused(false);
       setActiveUtteranceId(null);
     }
-  }, [activeUtteranceId, getFemaleVoice, detectLanguage]);
+  }, [activeUtteranceId, getIndianMaleVoice, cleanTextForTTS, detectLanguage]);
   
   useEffect(() => {
     stopSpeech();
@@ -268,8 +328,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     isSpeaking,
     isPaused,
     activeUtteranceId,
-    autoPlayEnabled,
-    setAutoPlayEnabled,
   };
 
   return (
