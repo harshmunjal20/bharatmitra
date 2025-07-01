@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect, useCallback, useContext } from 'rea
 import { ChatMessage as ChatMessageType, MessageSender } from '../types';
 import { getSchemeAdvice } from '../services/geminiService';
 import ChatMessage from '../components/ChatMessage';
+import { MicIcon } from '../components/icons/MicIcon';
 import { SendIcon } from '../components/icons/SendIcon';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { UserContext } from '../contexts/UserContext';
 
 const ChatPage: React.FC = () => {
@@ -22,6 +24,19 @@ const ChatPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const tokensAddedRef = useRef(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const handleTranscriptComplete = useCallback((transcript: string) => {
+    setInput(transcript);
+  }, []);
+
+  const {
+    transcript,
+    isListening,
+    toggleVoiceInput,
+    disableVoiceInput,
+    isEnabled,
+    error: recognitionError
+  } = useSpeechRecognition(language, handleTranscriptComplete);
 
   useEffect(() => {
     setMessages([getInitialMessage(language)]);
@@ -51,6 +66,8 @@ const ChatPage: React.FC = () => {
   const handleSendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
 
+    disableVoiceInput();
+
     const userMessage: ChatMessageType = {
       id: new Date().toISOString() + Math.random(),
       sender: MessageSender.USER,
@@ -77,7 +94,7 @@ const ChatPage: React.FC = () => {
       setMessages(prev => [...prev, aiMessage]);
 
       if (!tokensAddedRef.current) {
-        
+        addTokens(10);
         tokensAddedRef.current = true;
       }
 
@@ -99,7 +116,11 @@ const ChatPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, language, addTokens, togglePlayPause, autoPlayEnabled]);
+  }, [input, isLoading, language, addTokens, togglePlayPause, autoPlayEnabled, disableVoiceInput]);
+
+  const handleMicClick = () => {
+    toggleVoiceInput();
+  };
 
   return (
     <div className="min-h-screen px-4 py-8 bg-fixed bg-[url('https://www.transparenttextures.com/patterns/flowers.png')] bg-red-50 bg-blend-overlay bg-opacity-90">
@@ -127,13 +148,28 @@ const ChatPage: React.FC = () => {
         </div>
 
         <div className="border-t-2 border-gray-200 p-4 bg-gray-50 rounded-b-xl">
+          {recognitionError && (
+            <div className="text-center text-red-600 bg-red-100 p-2 rounded-md mb-2 text-sm">
+              {recognitionError}
+            </div>
+          )}
           <div className="flex items-center space-x-3">
+            <button
+              onClick={handleMicClick}
+              className={`flex-shrink-0 p-3 rounded-full transition-colors duration-200 ${
+                isEnabled ? (isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-green-500 text-white') 
+                          : 'bg-bharat-blue-100 text-bharat-blue-700 hover:bg-bharat-blue-200'
+              }`}
+              aria-label={isListening ? 'Stop recording' : 'Start recording'}
+            >
+              <MicIcon className="h-6 w-6" />
+            </button>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Type your question here..."
+              placeholder={isListening ? 'Listening...' : 'Type your question here...'}
               className="flex-grow px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-bharat-blue-500"
               disabled={isLoading}
             />
