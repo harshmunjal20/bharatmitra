@@ -50,6 +50,27 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const isMessagePlaying = isThisMessageActive && isSpeaking && !isPaused;
   
   const handleSpeakClick = () => {
+    console.log('🎵 Play button clicked!');
+    console.log('Message ID:', message.id);
+    console.log('Message text:', message.text);
+    console.log('Language:', language);
+    console.log('Current state:', {
+      isSpeaking,
+      isPaused,
+      activeUtteranceId,
+      isThisMessageActive,
+      isMessagePlaying
+    });
+    
+    if (!('speechSynthesis' in window)) {
+      console.error('❌ Speech synthesis not supported in this browser');
+      alert('Speech synthesis not supported in this browser');
+      return;
+    }
+    
+    console.log('✅ Speech synthesis is available');
+    console.log('Available voices:', speechSynthesis.getVoices().length);
+    
     togglePlayPause(message.text, message.id, language);
   };
 
@@ -65,6 +86,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
               onClick={handleSpeakClick} 
               className="absolute -bottom-3 -right-3 p-1 bg-white rounded-full shadow-md text-gray-500 hover:text-bharat-blue-600 hover:bg-gray-50 transition"
               aria-label={isMessagePlaying ? "Pause message" : "Play message"}
+              style={{ backgroundColor: isMessagePlaying ? '#fef3c7' : 'white' }} 
             >
               {isMessagePlaying
                 ? <PauseIcon className="w-4 h-4 text-bharat-blue-700" /> 
