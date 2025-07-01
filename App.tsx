@@ -50,7 +50,7 @@ const App: React.FC = () => {
         <Footer />
       </div>
     </HashRouter>
-  );
+  )
 };
 
 export default App;

@@ -25,6 +25,7 @@ const Header: React.FC = () => {
           </div>
 
           {/* Navigation */}
+
           <nav className="hidden md:flex items-center space-x-2">
             {[
               ['/', 'Home'],

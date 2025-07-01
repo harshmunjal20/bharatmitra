@@ -122,6 +122,6 @@ const VoiceChatPage: React.FC = () => {
       </div>
     </div>
   );
-};
+}
 
 export default VoiceChatPage;
