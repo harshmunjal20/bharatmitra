@@ -1,6 +1,12 @@
-import React, { createContext, useState, ReactNode, useCallback, useEffect, useRef } from 'react';
+import React, {
+  createContext,
+  useState,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+} from 'react';
 
-// A simple function to generate a mock user ID
 const generateUserId = () => `user_${Math.random().toString(36).substr(2, 9)}`;
 
 interface UserContextType {
@@ -10,7 +16,6 @@ interface UserContextType {
   deductTokens: (amount: number) => boolean;
   language: 'en' | 'hi';
   setLanguage: (lang: 'en' | 'hi') => void;
-  // TTS Controls
   togglePlayPause: (text: string, id: string, lang: 'en' | 'hi') => void;
   isSpeaking: boolean;
   isPaused: boolean;
@@ -39,93 +44,111 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [tokenBalance, setTokenBalance] = useState<number>(100);
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
 
-  // --- TTS State and Logic ---
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [activeUtteranceId, setActiveUtteranceId] = useState<string | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
-  const englishVoice = voices.find(v => v.lang === 'en-IN' && v.name.includes('Female')) || voices.find(v => v.name === 'Google UK English Female') || voices.find(v => v.lang.startsWith('en-'));
-  const hindiVoice = voices.find(v => v.lang === 'hi-IN' && v.name.includes('Female')) || voices.find(v => v.lang === 'hi-IN');
-
+  // Load available voices (delayed for async support)
   useEffect(() => {
-    const loadVoices = () => setVoices(window.speechSynthesis.getVoices());
+    const loadVoices = () => {
+      setTimeout(() => {
+        const availableVoices = window.speechSynthesis.getVoices();
+        setVoices(availableVoices);
+      }, 100);
+    };
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
+
     return () => {
-        window.speechSynthesis.onvoiceschanged = null;
-        window.speechSynthesis.cancel();
+      window.speechSynthesis.onvoiceschanged = null;
+      window.speechSynthesis.cancel();
     };
   }, []);
 
-  const togglePlayPause = useCallback((text: string, id: string, lang: 'en' | 'hi') => {
+  // Cancel ongoing speech on language change
+  useEffect(() => {
+    window.speechSynthesis.cancel();
+  }, [language]);
+
+  const togglePlayPause = useCallback(
+    (text: string, id: string, lang: 'en' | 'hi') => {
       const synth = window.speechSynthesis;
       const isThisMessageActive = id === activeUtteranceId;
 
-      if (synth.speaking && isThisMessageActive) {
-          if (synth.paused) {
-              synth.resume();
-          } else {
-              synth.pause();
-          }
-      } else {
-          synth.cancel();
+      const voice =
+        voices.find(
+          (v) =>
+            (lang === 'hi' && v.lang === 'hi-IN' && v.name.includes('Female')) ||
+            (lang === 'hi' && v.lang === 'hi-IN')
+        ) ||
+        voices.find(
+          (v) =>
+            (lang === 'en' && v.lang === 'en-IN' && v.name.includes('Female')) ||
+            (lang === 'en' && v.name === 'Google UK English Female') ||
+            (lang === 'en' && v.lang.startsWith('en-'))
+        );
 
-          const utterance = new SpeechSynthesisUtterance(text);
-          utteranceRef.current = utterance;
-
-          const voice = lang === 'hi' ? hindiVoice : englishVoice;
-          if (voice) {
-              utterance.voice = voice;
-              utterance.lang = voice.lang;
-          }
-          utterance.rate = 0.95;
-          utterance.pitch = 1;
-
-          utterance.onstart = () => {
-              setIsSpeaking(true);
-              setIsPaused(false);
-              setActiveUtteranceId(id);
-          };
-          utterance.onpause = () => setIsPaused(true);
-          utterance.onresume = () => setIsPaused(false);
-          utterance.onend = () => {
-              setIsSpeaking(false);
-              setIsPaused(false);
-              setActiveUtteranceId(null);
-              utteranceRef.current = null;
-          };
-          utterance.onerror = (e) => {
-              console.error("SpeechSynthesis Error", e);
-              setIsSpeaking(false);
-              setIsPaused(false);
-              setActiveUtteranceId(null);
-          };
-          
-          synth.speak(utterance);
+      if (!voice) {
+        console.warn(`No voice found for language: ${lang}`);
       }
-  }, [activeUtteranceId, hindiVoice, englishVoice]);
-  
-  // Stop speech when language changes
-  useEffect(() => {
-      window.speechSynthesis.cancel();
-  }, [language]);
 
+      if (synth.speaking && isThisMessageActive) {
+        synth.paused ? synth.resume() : synth.pause();
+      } else {
+        synth.cancel();
 
-  const addTokens = (amount: number) => {
-    setTokenBalance(prevBalance => prevBalance + amount);
-  };
+        const utterance = new SpeechSynthesisUtterance(text);
+        utteranceRef.current = utterance;
 
-  const deductTokens = (amount: number): boolean => {
+        if (voice) {
+          utterance.voice = voice;
+          utterance.lang = voice.lang;
+        }
+
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+
+        utterance.onstart = () => {
+          setIsSpeaking(true);
+          setIsPaused(false);
+          setActiveUtteranceId(id);
+        };
+        utterance.onpause = () => setIsPaused(true);
+        utterance.onresume = () => setIsPaused(false);
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          setIsPaused(false);
+          setActiveUtteranceId(null);
+          utteranceRef.current = null;
+        };
+        utterance.onerror = (e) => {
+          console.error('SpeechSynthesis Error', e);
+          setIsSpeaking(false);
+          setIsPaused(false);
+          setActiveUtteranceId(null);
+        };
+
+        synth.speak(utterance);
+      }
+    },
+    [activeUtteranceId, voices]
+  );
+
+  const addTokens = useCallback((amount: number) => {
+    setTokenBalance((prev) => prev + amount);
+  }, []);
+
+  const deductTokens = useCallback((amount: number): boolean => {
     if (tokenBalance >= amount) {
-      setTokenBalance(prevBalance => prevBalance - amount);
+      setTokenBalance((prev) => prev - amount);
       return true;
     }
     return false;
-  };
+  }, [tokenBalance]);
 
-  const value = {
+  const value: UserContextType = {
     userId,
     tokenBalance,
     addTokens,
@@ -138,9 +161,5 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     activeUtteranceId,
   };
 
-  return (
-    <UserContext.Provider value={value}>
-      {children}
-    </UserContext.Provider>
-  );
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
