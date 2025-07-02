@@ -17,6 +17,7 @@ const Header: React.FC = () => {
     ['/chat', 'Chat'],
     ['/voice-chat', 'Voice Chat'],
     ['/scholarships', 'Scholarships'],
+    ['/buy-tokens', 'Buy Tokens'], // ✅ Added in mobile menu
     ['/about', 'About'],
     ['/settings', 'Settings'],
   ];
@@ -36,7 +37,6 @@ const Header: React.FC = () => {
           {/* Logo + Title */}
           <div className="flex items-center space-x-3">
             <AshokaChakraIcon className="h-10 w-10 text-bharat-blue-800 rotate-slow" />
-
             <h1 className="text-xl md:text-2xl font-extrabold text-bharat-blue-900 tracking-tight">
               Bharat Mitra
             </h1>
@@ -52,6 +52,7 @@ const Header: React.FC = () => {
               ['/scholarships', 'Scholarships'],
               ['/leaderboard', 'Leaderboard'],
               ['/redeem', 'Redeem'],
+              ['/buy-tokens', 'Buy Tokens'], // ✅ Added in desktop menu
             ].map(([to, label]) => (
               <NavLink
                 key={to}

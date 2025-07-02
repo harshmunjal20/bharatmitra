@@ -9,6 +9,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import ScholarshipPage from './pages/ScholarshipPage';
 import RedeemPage from './pages/RedeemPage';
 import VoiceChatPage from './pages/VoiceChatPage';
+import BuyTokens from './pages/BuyTokens'; // ✅ NEW: Import BuyTokens page
 import { UserContext } from './contexts/UserContext';
 
 const ReferralHandler: React.FC = () => {
@@ -18,17 +19,13 @@ const ReferralHandler: React.FC = () => {
   useEffect(() => {
     const refId = searchParams.get('ref');
     if (refId) {
-      // In a real app, you'd verify the refId and ensure the reward is given only once.
-      // For this simulation, we'll just add tokens.
       console.log(`Referred by ${refId}. Awarding 5 tokens for both users.`);
-      addTokens(5); // Award tokens to the new user
-      // A backend call would award tokens to the referrer (refId)
+      addTokens(5);
     }
   }, [searchParams, addTokens]);
 
-  return null; // This component doesn't render anything
+  return null;
 };
-
 
 const App: React.FC = () => {
   return (
@@ -45,12 +42,13 @@ const App: React.FC = () => {
             <Route path="/scholarships" element={<ScholarshipPage />} />
             <Route path="/redeem" element={<RedeemPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/buy-tokens" element={<BuyTokens />} /> {/* ✅ NEW Route */}
           </Routes>
         </main>
         <Footer />
       </div>
     </HashRouter>
-  )
+  );
 };
 
 export default App;
