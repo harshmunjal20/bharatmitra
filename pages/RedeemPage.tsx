@@ -139,7 +139,7 @@ const RedeemPage: React.FC = () => {
               onEnded={handleAdComplete}
               className="rounded-md border"
             >
-              <source src="videoProject.mp4" type="video/mp4" />
+              <source src="https://youtu.be/K9GtRXdb7CI?si=35YSGv9_GgfyjwKN" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
             <p className="text-sm text-gray-600 mt-2">
