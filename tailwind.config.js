@@ -9,3 +9,17 @@ extend: {
     },
   },
 }
+
+theme: {
+  extend: {
+    animation: {
+      'glow': 'glowPulse 2s infinite ease-in-out',
+    },
+    keyframes: {
+      glowPulse: {
+        '0%, 100%': { boxShadow: '0 0 20px rgba(220,38,38,0.5)' },
+        '50%': { boxShadow: '0 0 40px rgba(220,38,38,0.8)' },
+      },
+    },
+  },
+}

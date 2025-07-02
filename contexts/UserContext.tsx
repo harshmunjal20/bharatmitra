@@ -5,6 +5,7 @@ const generateUserId = () => `user_${Math.random().toString(36).substr(2, 9)}`;
 interface UserContextType {
   userId: string;
   tokenBalance: number;
+  setTokenBalance: React.Dispatch<React.SetStateAction<number>>;
   addTokens: (amount: number) => void;
   deductTokens: (amount: number) => boolean;
   language: 'en' | 'hi';
@@ -319,6 +320,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const value = {
     userId,
     tokenBalance,
+    setTokenBalance,
     addTokens,
     deductTokens,
     language,
