@@ -4,7 +4,6 @@ import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import { UserContext } from '../contexts/UserContext';
 import PerkCard from '../components/PerkCard';
 
-// Define your Perk type inline (or import if defined elsewhere)
 type Perk = {
   id: string;
   name: string;
@@ -14,7 +13,6 @@ type Perk = {
   category: 'Premium' | 'Mentorship' | 'Exam' | 'Daily' | 'Mystery';
 };
 
-// Create 15+ perks
 const ALL_PERKS: Perk[] = [
   // Premium
   { id: 'premium-1', name: 'Premium Scheme Access', description: 'Unlock detailed guides & calculators.', price: 60, icon: () => <>🏆</>, category: 'Premium' },
@@ -45,10 +43,11 @@ const ALL_PERKS: Perk[] = [
 const CATEGORIES: (Perk['category'] | 'All')[] = ['All', 'Premium', 'Mentorship', 'Exam', 'Daily', 'Mystery'];
 
 const RedeemPage: React.FC = () => {
-  const { tokenBalance, deductTokens } = useContext(UserContext);
+  const { tokenBalance, deductTokens, setTokenBalance } = useContext(UserContext);
   const [selectedCategory, setSelectedCategory] = useState<'All' | Perk['category']>('All');
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error'; } | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [watched, setWatched] = useState(false);
 
   const filtered = selectedCategory === 'All'
     ? ALL_PERKS
@@ -64,6 +63,16 @@ const RedeemPage: React.FC = () => {
       setNotification({ message: `❌ Not enough tokens.`, type: 'error' });
     }
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleAdComplete = () => {
+    if (!watched) {
+      const reward = Math.floor(Math.random() * 6) + 5; // Random between 5 and 10
+      setTokenBalance(tokenBalance + reward);
+      setWatched(true);
+      setNotification({ message: `🎁 You earned ${reward} tokens!`, type: 'success' });
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
 
   return (
@@ -114,6 +123,33 @@ const RedeemPage: React.FC = () => {
               onRedeem={handleRedeem}
             />
           ))
+        )}
+      </div>
+
+      {/* 🎥 Watch Ad to Earn Tokens Section */}
+      <div className="max-w-3xl mx-auto mt-12 bg-white/90 backdrop-blur-sm p-6 rounded-xl border border-red-300 shadow-[0_5px_15px_rgba(220,38,38,0.5)]">
+        <h2 className="text-2xl font-bold text-red-700 mb-4">🎥 Watch Ad & Earn Tokens</h2>
+
+        {!watched ? (
+          <>
+            <video
+              width="100%"
+              height="auto"
+              controls
+              onEnded={handleAdComplete}
+              className="rounded-md border"
+            >
+              <source src="videoProject.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <p className="text-sm text-gray-600 mt-2">
+              Watch the full video to earn between 5–10 tokens!
+            </p>
+          </>
+        ) : (
+          <p className="text-green-600 font-semibold mt-2">
+            ✅ Tokens added! Check your updated balance.
+          </p>
         )}
       </div>
     </div>
