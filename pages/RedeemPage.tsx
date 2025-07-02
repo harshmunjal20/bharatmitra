@@ -139,7 +139,7 @@ const RedeemPage: React.FC = () => {
               onEnded={handleAdComplete}
               className="rounded-md border"
             >
-              <source src="https://youtu.be/K9GtRXdb7CI?si=35YSGv9_GgfyjwKN" type="video/mp4" />
+              <iframe width="560" height="315" src="https://www.youtube.com/embed/K9GtRXdb7CI?si=z8j-TiedPslGdCk-" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
               Your browser does not support the video tag.
             </video>
             <p className="text-sm text-gray-600 mt-2">
