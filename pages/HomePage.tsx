@@ -34,7 +34,7 @@ const HomePage: React.FC = () => {
     <div className="min-h-screen px-6 py-12 bg-fixed bg-[url('https://www.transparenttextures.com/patterns/flower.png')] bg-red-50 bg-blend-overlay bg-opacity-90 text-center">
       {/* Ashoka Chakra */}
       <div className="flex justify-center items-center mb-6 animate-fade-in">
-        <AshokaChakraIcon className="h-24 w-24 text-bharat-blue-800 animate-spin-slow" />
+        <AshokaChakraIcon className="h-20 w-20 text-bharat-blue-800 rotate-slow" />
       </div>
 
       {/* Headline */}
