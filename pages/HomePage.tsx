@@ -30,20 +30,20 @@ const HomePage: React.FC = () => {
   return (
     <>
       {/* 🔹 Background Video Section */}
-      <div className="relative  backdrop-blur-md overflow-hidden text-center text-white">
+      <div className="relative min-h-screen backdrop-blur-md overflow-hidden text-center text-white">
         <video
           autoPlay
           muted
           loop
           playsInline
-          className="absolute top-0 left-0 w-100% h-100%"
+          className="absolute top-0 left-0 w-full h-full object-cover"
         >
-          <source src="videonew.mp4" type="video/mp4" />
+          <source src="/videonew.mp4" type="video/mp4" />
+          <source src="./videonew.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
-
-        <div className="relative z-10 px-6 py-12 backdrop-blur-sm bg-black/20">
+        <div className="relative z-10 px-6 py-12 backdrop-blur-sm bg-black/20 min-h-screen flex flex-col justify-center">
         {/* Ashoka Chakra */}
         <div className="flex justify-center items-center mb-6 animate-fade-in">
           <AshokaChakraIcon className="h-20 w-20 text-white rotate-slow" />
@@ -148,7 +148,7 @@ const HomePage: React.FC = () => {
                 },
                 {
                   title: 'Ayushman Bharat',
-                  description: 'Free treatment up to ₹5 lakhs under the world’s largest health scheme.',
+                  description: 'Free treatment up to ₹5 lakhs under the world\'s largest health scheme.',
                   image: 'https://www.okbima.com/assets/uploads/blog/2018977fba45e5fa1bb958ed777f29db.webp',
                   link: 'https://pmjay.gov.in/',
                 },
@@ -212,7 +212,7 @@ const HomePage: React.FC = () => {
               {
                 icon: '🔒',
                 title: 'Is my data safe?',
-                answer: '🛡️ Absolutely. We don’t collect any personal data or store your queries.',
+                answer: "🛡️ Absolutely. We don't collect any personal data or store your queries.",
               },
             ].map((faq, idx) => (
               <div
