@@ -1,6 +1,491 @@
 import { Scheme, LeaderboardUser, RedeemPerk } from './types';
 import { StoreIcon } from './components/icons/StoreIcon';
 import { ScholarshipIcon } from './components/icons/ScholarshipIcon';
+import { Scholarship } from './types';
+
+export const RECOMMENDED_SCHOLARSHIPS: Scholarship[] = [
+  {
+    id: '1',
+    name: 'AICTE Pragati Scholarship for Girls',
+    provider: 'AICTE',
+    deadline: '31 August 2025',
+    amount: '₹50,000/year',
+    link: 'https://aicte-india.org/schemes/students-development-schemes',
+    eligibility: {
+      minAge: 17,
+      maxAge: 25,
+      course: ['B.Tech'],
+      caste: ['SC', 'ST', 'OBC'],
+      maxIncome: 800000,
+      state: ['All'],
+    },
+  },
+  {
+    id: '2',
+    name: 'Post Matric Scholarship for SC Students',
+    provider: 'State Government (UP)',
+    deadline: '15 September 2025',
+    amount: '₹12,000/year',
+    link: 'https://scholarship.up.gov.in',
+    eligibility: {
+      minAge: 16,
+      maxAge: 28,
+      course: ['B.A.', 'B.Com', 'B.Sc'],
+      caste: ['SC'],
+      maxIncome: 250000,
+      state: ['Uttar Pradesh'],
+    },
+  },
+  {
+    id: '3',
+    name: 'Merit-cum-Means Scholarship',
+    provider: 'Ministry of Minority Affairs',
+    deadline: '10 September 2025',
+    amount: '₹20,000/year',
+    link: 'https://scholarships.gov.in',
+    eligibility: {
+      minAge: 17,
+      maxAge: 30,
+      course: ['B.Tech', 'M.Tech'],
+      caste: ['OBC', 'EWS'],
+      maxIncome: 250000,
+      state: ['All'],
+    },
+  },
+  {
+    id: '4',
+    name: 'Saksham Scholarship for Differently Abled Students',
+    provider: 'AICTE',
+    deadline: '20 August 2025',
+    amount: '₹50,000/year',
+    link: 'https://aicte-india.org/schemes/students-development-schemes',
+    eligibility: {
+      minAge: 18,
+      maxAge: 28,
+      course: ['B.Tech', 'Diploma'],
+      caste: ['All'],
+      maxIncome: 800000,
+      state: ['All'],
+    },
+  },
+  {
+    id: '5',
+    name: 'State Merit Scholarship',
+    provider: 'Kerala Government',
+    deadline: '10 October 2025',
+    amount: '₹10,000/year',
+    link: 'https://dcescholarship.kerala.gov.in',
+    eligibility: {
+      minAge: 17,
+      maxAge: 24,
+      course: ['B.Sc', 'M.Sc'],
+      caste: ['General', 'OBC'],
+      maxIncome: 600000,
+      state: ['Kerala'],
+    },
+  },
+  {
+    id: '6',
+    name: 'Ishan Uday Scholarship for North Eastern Students',
+    provider: 'UGC',
+    deadline: '5 September 2025',
+    amount: '₹7,800/month',
+    link: 'https://scholarships.gov.in',
+    eligibility: {
+      minAge: 17,
+      maxAge: 25,
+      course: ['B.Tech', 'B.A.'],
+      caste: ['All'],
+      maxIncome: 450000,
+      state: ['Assam', 'Meghalaya', 'Nagaland', 'Tripura'],
+    },
+  },
+  {
+    id: '7',
+    name: 'EBC Post Matric Scholarship',
+    provider: 'Bihar Government',
+    deadline: '20 October 2025',
+    amount: '₹10,000/year',
+    link: 'https://pmsonline.bih.nic.in',
+    eligibility: {
+      minAge: 17,
+      maxAge: 28,
+      course: ['B.A.', 'B.Com', 'B.Sc'],
+      caste: ['EBC'],
+      maxIncome: 200000,
+      state: ['Bihar'],
+    },
+  },
+  {
+    id: '8',
+    name: 'National Means-cum-Merit Scholarship (NMMS)',
+    provider: 'Ministry of Education',
+    deadline: '30 September 2025',
+    amount: '₹12,000/year',
+    link: 'https://scholarships.gov.in',
+    eligibility: {
+      minAge: 13,
+      maxAge: 16,
+      course: ['8th', '9th', '10th'],
+      caste: ['All'],
+      maxIncome: 150000,
+      state: ['All'],
+    },
+  },
+  {
+    id: '9',
+    name: 'Jharkhand Post Matric Scholarship',
+    provider: 'Jharkhand Welfare Department',
+    deadline: '25 September 2025',
+    amount: '₹10,000/year',
+    link: 'https://ekalyan.cgg.gov.in',
+    eligibility: {
+      minAge: 17,
+      maxAge: 28,
+      course: ['B.Tech', 'M.Tech'],
+      caste: ['ST', 'SC', 'OBC'],
+      maxIncome: 250000,
+      state: ['Jharkhand'],
+    },
+  },
+  {
+    id: '10',
+    name: 'Prime Minister’s Scholarship for Wards of Police Personnel',
+    provider: 'National Scholarship Portal',
+    deadline: '1 October 2025',
+    amount: '₹36,000/year',
+    link: 'https://scholarships.gov.in',
+    eligibility: {
+      minAge: 17,
+      maxAge: 25,
+      course: ['B.Tech', 'MBBS', 'BDS'],
+      caste: ['OBC', 'SC', 'ST'],
+      maxIncome: 900000,
+      state: ['All'],
+    },
+  },
+  {
+    id: '11',
+    name: 'MOMA Scholarship for Minorities',
+    provider: 'Ministry of Minority Affairs',
+    deadline: '28 August 2025',
+    amount: '₹25,000/year',
+    link: 'https://scholarships.gov.in',
+    eligibility: {
+      minAge: 18,
+      maxAge: 30,
+      course: ['B.Tech', 'MCA'],
+      caste: ['All'],
+      maxIncome: 300000,
+      state: ['All'],
+    },
+  },
+  {
+    id: '12',
+    name: 'UP Scholarship for OBC Students',
+    provider: 'UP Government',
+    deadline: '12 September 2025',
+    amount: '₹15,000/year',
+    link: 'https://scholarship.up.gov.in',
+    eligibility: {
+      minAge: 17,
+      maxAge: 28,
+      course: ['B.Sc', 'M.Sc'],
+      caste: ['OBC'],
+      maxIncome: 200000,
+      state: ['Uttar Pradesh'],
+    },
+  },
+  {
+    id: '13',
+    name: 'Tamil Nadu Free Education Scheme',
+    provider: 'Tamil Nadu Government',
+    deadline: '1 September 2025',
+    amount: 'Full Tuition Waiver',
+    link: 'https://www.tn.gov.in/scholarships',
+    eligibility: {
+      minAge: 17,
+      maxAge: 22,
+      course: ['B.Com', 'BBA'],
+      caste: ['SC', 'ST'],
+      maxIncome: 250000,
+      state: ['Tamil Nadu'],
+    },
+  },
+  {
+    id: '14',
+    name: 'Delhi Merit Scholarship',
+    provider: 'Delhi Directorate of Education',
+    deadline: '30 August 2025',
+    amount: '₹10,000/year',
+    link: 'https://edistrict.delhigovt.nic.in',
+    eligibility: {
+      minAge: 16,
+      maxAge: 25,
+      course: ['B.Com', 'B.Sc'],
+      caste: ['General', 'OBC'],
+      maxIncome: 300000,
+      state: ['Delhi'],
+    },
+  },
+  {
+    id: '15',
+    name: 'West Bengal Talent Support Stipend',
+    provider: 'West Bengal Government',
+    deadline: '15 October 2025',
+    amount: '₹12,000/year',
+    link: 'https://wbmdfcscholarship.org',
+    eligibility: {
+      minAge: 17,
+      maxAge: 26,
+      course: ['B.Sc', 'B.A.', 'B.Com'],
+      caste: ['All'],
+      maxIncome: 200000,
+      state: ['West Bengal'],
+    },
+  },
+  {
+  id: '16',
+  name: 'INSPIRE Scholarship for Higher Education',
+  provider: 'Department of Science and Technology',
+  deadline: '15 October 2025',
+  amount: '₹80,000/year',
+  link: 'https://online-inspire.gov.in/',
+  eligibility: {
+    minAge: 17,
+    maxAge: 22,
+    course: ['B.Sc', 'B.Sc(Hons)', 'Integrated M.Sc'],
+    caste: ['All'],
+    maxIncome: 800000,
+    state: ['All']
+  }
+},
+{
+  id: '17',
+  name: 'AICTE Pragati Scholarship for Girls',
+  provider: 'AICTE',
+  deadline: '20 September 2025',
+  amount: '₹50,000/year',
+  link: 'https://aicte-india.org/',
+  eligibility: {
+    minAge: 17,
+    maxAge: 25,
+    course: ['B.Tech', 'Diploma'],
+    caste: ['All'],
+    maxIncome: 800000,
+    state: ['All']
+  }
+},
+{
+  id: '18',
+  name: 'PG Indira Gandhi Scholarship for Single Girl Child',
+  provider: 'UGC',
+  deadline: '10 December 2025',
+  amount: '₹36,200/year',
+  link: 'https://www.ugc.ac.in/',
+  eligibility: {
+    minAge: 20,
+    maxAge: 30,
+    course: ['PG'],
+    caste: ['All'],
+    maxIncome: 600000,
+    state: ['All']
+  }
+},
+{
+  id: '19',
+  name: 'E-Kalyan Scholarship for SC/ST/OBC (Jharkhand)',
+  provider: 'Govt. of Jharkhand',
+  deadline: '31 October 2025',
+  amount: '₹25,000/year',
+  link: 'https://ekalyan.cgg.gov.in/',
+  eligibility: {
+    minAge: 17,
+    maxAge: 30,
+    course: ['B.Tech', 'BA', 'BSc', 'MA', 'MSc'],
+    caste: ['SC', 'ST', 'OBC'],
+    maxIncome: 250000,
+    state: ['Jharkhand']
+  }
+},
+{
+  id: '20',
+  name: 'Maharashtra Post-Matric Scholarship',
+  provider: 'Social Justice Dept., Maharashtra',
+  deadline: '30 November 2025',
+  amount: '₹12,000/year',
+  link: 'https://mahadbt.maharashtra.gov.in/',
+  eligibility: {
+    minAge: 18,
+    maxAge: 28,
+    course: ['BA', 'B.Com', 'B.Sc', 'Diploma'],
+    caste: ['SC', 'ST', 'OBC'],
+    maxIncome: 250000,
+    state: ['Maharashtra']
+  }
+},
+{
+  id: '21',
+  name: 'Karnataka SSP Scholarship',
+  provider: 'State Government of Karnataka',
+  deadline: '15 September 2025',
+  amount: '₹10,000/year',
+  link: 'https://ssp.postmatric.karnataka.gov.in/',
+  eligibility: {
+    minAge: 17,
+    maxAge: 25,
+    course: ['Diploma', 'B.Tech'],
+    caste: ['SC', 'ST', 'OBC'],
+    maxIncome: 200000,
+    state: ['Karnataka']
+  }
+},
+{
+  id: '22',
+  name: 'Tata Trusts Means Grant for College Students',
+  provider: 'Tata Trusts',
+  deadline: '10 October 2025',
+  amount: '₹20,000/year',
+  link: 'https://www.tatatrusts.org/',
+  eligibility: {
+    minAge: 18,
+    maxAge: 26,
+    course: ['B.Com', 'BA', 'B.Sc'],
+    caste: ['All'],
+    maxIncome: 500000,
+    state: ['All']
+  }
+},
+{
+  id: '23',
+  name: 'Foundation for Excellence (FFE) Scholarship',
+  provider: 'FFE India Trust',
+  deadline: '1 August 2025',
+  amount: '₹40,000/year',
+  link: 'https://ffe.org/',
+  eligibility: {
+    minAge: 17,
+    maxAge: 24,
+    course: ['Engineering', 'MBBS'],
+    caste: ['All'],
+    maxIncome: 300000,
+    state: ['All']
+  }
+},
+{
+  id: '24',
+  name: 'Scholarship for Minority Students (NSP)',
+  provider: 'Ministry of Minority Affairs',
+  deadline: '15 October 2025',
+  amount: '₹20,000/year',
+  link: 'https://scholarships.gov.in/',
+  eligibility: {
+    minAge: 17,
+    maxAge: 28,
+    course: ['Any'],
+    caste: ['All'],
+    maxIncome: 250000,
+    state: ['All']
+  }
+},
+{
+  id: '25',
+  name: 'Nabanna Scholarship (West Bengal)',
+  provider: 'West Bengal Government',
+  deadline: '30 September 2025',
+  amount: '₹10,000/year',
+  link: 'https://wbcmo.gov.in/',
+  eligibility: {
+    minAge: 17,
+    maxAge: 25,
+    course: ['Any'],
+    caste: ['All'],
+    maxIncome: 60000,
+    state: ['West Bengal']
+  }
+},
+{
+  id: '26',
+  name: 'ONGC Scholarship for SC/ST Students',
+  provider: 'ONGC Foundation',
+  deadline: '1 November 2025',
+  amount: '₹48,000/year',
+  link: 'https://www.ongcscholar.org/',
+  eligibility: {
+    minAge: 17,
+    maxAge: 30,
+    course: ['Engineering', 'MBBS', 'MBA'],
+    caste: ['SC', 'ST'],
+    maxIncome: 200000,
+    state: ['All']
+  }
+},
+{
+  id: '27',
+  name: 'Santoor Women’s Scholarship',
+  provider: 'Wipro Foundation',
+  deadline: '25 August 2025',
+  amount: '₹24,000/year',
+  link: 'https://www.santoorscholarship.com/',
+  eligibility: {
+    minAge: 17,
+    maxAge: 23,
+    course: ['BA', 'BSc'],
+    caste: ['All'],
+    maxIncome: 200000,
+    state: ['Karnataka', 'Andhra Pradesh', 'Telangana']
+  }
+},
+{
+  id: '28',
+  name: 'Ishan Uday Scholarship for North Eastern Region',
+  provider: 'UGC',
+  deadline: '15 October 2025',
+  amount: '₹7,800/month',
+  link: 'https://www.ugc.ac.in/ner/',
+  eligibility: {
+    minAge: 18,
+    maxAge: 25,
+    course: ['Any UG'],
+    caste: ['All'],
+    maxIncome: 450000,
+    state: ['Assam', 'Meghalaya', 'Manipur', 'Nagaland', 'Mizoram', 'Tripura', 'Sikkim', 'Arunachal Pradesh']
+  }
+},
+{
+  id: '29',
+  name: 'Siemens Scholarship Program',
+  provider: 'Siemens India',
+  deadline: '30 August 2025',
+  amount: '₹50,000/year + mentoring',
+  link: 'https://www.siemens.co.in/',
+  eligibility: {
+    minAge: 18,
+    maxAge: 22,
+    course: ['B.Tech'],
+    caste: ['All'],
+    maxIncome: 200000,
+    state: ['All']
+  }
+},
+{
+  id: '30',
+  name: 'NSDL Shiksha Sahyog Scholarship',
+  provider: 'NSDL e-Gov',
+  deadline: '31 August 2025',
+  amount: '₹12,000/year',
+  link: 'https://www.vidyasaarathi.co.in/',
+  eligibility: {
+    minAge: 17,
+    maxAge: 25,
+    course: ['B.Com', 'BBA', 'BA'],
+    caste: ['All'],
+    maxIncome: 300000,
+    state: ['All']
+  }
+}
+];
+
 
 export const RECOMMENDED_SCHEMES: Scheme[] = [
   {
@@ -338,15 +823,16 @@ export const RECOMMENDED_SCHEMES: Scheme[] = [
   },
 ];
 
+
 export const LEADERBOARD_DATA: LeaderboardUser[] = [
   { rank: 1, name: 'Ramesh Kumar', location: 'Punjab', tokens: 250, avatarUrl: 'https://i.pravatar.cc/150?img=1' },
   { rank: 2, name: 'Sunita Devi', location: 'Uttar Pradesh', tokens: 235, avatarUrl: 'https://i.pravatar.cc/150?img=5' },
   { rank: 3, name: 'Arjun Singh', location: 'Rajasthan', tokens: 210, avatarUrl: 'https://i.pravatar.cc/150?img=3' },
-  { rank: 4, name: 'Priya Sharma', location: 'Maharashtra', tokens: 198, avatarUrl: 'https://i.pravatar.cc/150?img=8' },
+  { rank: 4, name: 'Ramesh Sharma', location: 'Maharashtra', tokens: 198, avatarUrl: 'https://i.pravatar.cc/150?img=8' },
   { rank: 5, name: 'Amit Patel', location: 'Gujarat', tokens: 180, avatarUrl: 'https://i.pravatar.cc/150?img=7' },
-  { rank: 6, name: 'Kavita Reddy', location: 'Andhra Pradesh', tokens: 172, avatarUrl: 'https://i.pravatar.cc/150?img=11' },
+  { rank: 6, name: 'Vaibhav Reddy', location: 'Andhra Pradesh', tokens: 172, avatarUrl: 'https://i.pravatar.cc/150?img=11' },
   { rank: 7, name: 'Sandeep Tiwari', location: 'Madhya Pradesh', tokens: 165, avatarUrl: 'https://i.pravatar.cc/150?img=12' },
-  { rank: 8, name: 'Anjali Das', location: 'West Bengal', tokens: 150, avatarUrl: 'https://i.pravatar.cc/150?img=14' },
+  { rank: 8, name: 'Arjun Das', location: 'West Bengal', tokens: 150, avatarUrl: 'https://i.pravatar.cc/150?img=14' },
 ];
 
 // constants.ts
