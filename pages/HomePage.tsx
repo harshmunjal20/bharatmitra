@@ -150,7 +150,7 @@ const HomePage = () => {
                 },
                 {
                   title: 'Ayushman Bharat',
-                  description: "Free treatment up to ₹5 lakhs under the world's largest health scheme.",
+                  description: 'Free treatment up to ₹5 lakhs under the world\'s largest health scheme.',
                   image: 'https://via.placeholder.com/280x160/DC2626/FFFFFF?text=Ayushman',
                 },
                 {
@@ -209,7 +209,7 @@ const HomePage = () => {
               {
                 icon: '🔒',
                 title: 'Is my data safe?',
-                answer: '🛡️ Absolutely. We don't collect any personal data or store your queries.',
+                answer: '🛡️ Absolutely. We don\'t collect any personal data or store your queries.',
               },
             ].map((faq, idx) => (
               <div
