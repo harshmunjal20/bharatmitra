@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 
 // Mock AshokaChakraIcon component since it's not available
 const AshokaChakraIcon = ({ className }) => (
