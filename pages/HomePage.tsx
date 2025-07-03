@@ -38,7 +38,7 @@ const HomePage: React.FC = () => {
           playsInline
           className="absolute top-0 left-0 w-full h-full object-cover"
         >
-          <source src="/videonew.mp4" type="video/mp4" />
+          <source src="https://videos.pexels.com/video-files/30113222/12915429_1920_1080_25fps.mp4" type="video/mp4" />
 {/*           <source src="./videonew.mp4" type="video/mp4" /> */}
           Your browser does not support the video tag.
         </video>
