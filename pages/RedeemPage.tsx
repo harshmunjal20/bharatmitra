@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import Confetti from 'react-confetti';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid';
 import { UserContext } from '../contexts/UserContext';
@@ -40,6 +40,7 @@ const ALL_PERKS: Perk[] = [
   { id: 'mystery-3', name: 'Lucky Spin', description: 'Try your luck for tokens or perks.', price: 20, icon: () => <>🎡</>, category: 'Mystery' },
 ];
 
+
 const CATEGORIES: (Perk['category'] | 'All')[] = ['All', 'Premium', 'Mentorship', 'Exam', 'Daily', 'Mystery'];
 
 const RedeemPage: React.FC = () => {
@@ -48,15 +49,33 @@ const RedeemPage: React.FC = () => {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [watched, setWatched] = useState(false);
+  const [nextWatchTime, setNextWatchTime] = useState<number | null>(null);
 
-  const filtered = selectedCategory === 'All'
-    ? ALL_PERKS
-    : ALL_PERKS.filter((perk) => perk.category === selectedCategory);
+  useEffect(() => {
+    const lastTime = localStorage.getItem('lastAdWatched');
+    if (lastTime) {
+      const last = parseInt(lastTime, 10);
+      const now = Date.now();
+      const elapsed = now - last;
+      if (elapsed < 8 * 60 * 60 * 1000) {
+        setWatched(true);
+        setNextWatchTime(last + 8 * 60 * 60 * 1000);
+      }
+    }
+  }, []);
+
+  const getTimeLeft = () => {
+    if (!nextWatchTime) return '';
+    const ms = nextWatchTime - Date.now();
+    const h = Math.floor(ms / (1000 * 60 * 60));
+    const m = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    return `${h}h ${m}m remaining`;
+  };
 
   const handleRedeem = (id: string, price: number) => {
     if (deductTokens(price)) {
-      const redeemedPerk = ALL_PERKS.find((p) => p.id === id);
-      setNotification({ message: `🎉 Redeemed "${redeemedPerk?.name}"!`, type: 'success' });
+      const perk = ALL_PERKS.find(p => p.id === id);
+      setNotification({ message: `🎉 Redeemed "${perk?.name}"!`, type: 'success' });
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 2000);
     } else {
@@ -67,13 +86,20 @@ const RedeemPage: React.FC = () => {
 
   const handleAdComplete = () => {
     if (!watched) {
-      const reward = Math.floor(Math.random() * 6) + 5; // Random between 5 and 10
+      const reward = Math.floor(Math.random() * 6) + 5; // 5-10
       setTokenBalance(tokenBalance + reward);
+      const now = Date.now();
+      localStorage.setItem('lastAdWatched', now.toString());
       setWatched(true);
+      setNextWatchTime(now + 8 * 60 * 60 * 1000);
       setNotification({ message: `🎁 You earned ${reward} tokens!`, type: 'success' });
       setTimeout(() => setNotification(null), 3000);
     }
   };
+
+  const filtered = selectedCategory === 'All'
+    ? ALL_PERKS
+    : ALL_PERKS.filter(p => p.category === selectedCategory);
 
   return (
     <div className="min-h-screen px-6 py-12" style={{ backgroundColor: '#fff6f7' }}>
@@ -89,14 +115,13 @@ const RedeemPage: React.FC = () => {
         }`}>
           {notification.type === 'success'
             ? <CheckCircleIcon className="w-6 text-green-500" />
-            : <XCircleIcon className="w-6 text-red-500" />
-          }
+            : <XCircleIcon className="w-6 text-red-500" />}
           <span>{notification.message}</span>
         </div>
       )}
 
       <div className="flex flex-wrap justify-center gap-4 mb-8">
-        {CATEGORIES.map((cat) => (
+        {CATEGORIES.map(cat => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
@@ -115,7 +140,7 @@ const RedeemPage: React.FC = () => {
         {filtered.length === 0 ? (
           <p className="col-span-full text-center text-gray-500">No perks in this category.</p>
         ) : (
-          filtered.map((perk) => (
+          filtered.map(perk => (
             <PerkCard
               key={perk.id}
               perk={perk}
@@ -148,7 +173,8 @@ const RedeemPage: React.FC = () => {
           </>
         ) : (
           <p className="text-green-600 font-semibold mt-2">
-            ✅ Tokens added! Check your updated balance.
+            ✅ You’ve already earned tokens from the ad. <br />
+            ⏳ {getTimeLeft()}
           </p>
         )}
       </div>
